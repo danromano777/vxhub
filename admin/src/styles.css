@@ -1,0 +1,84 @@
+:root {
+  --lime: #C4FF4D;
+  --turq: #18E0C8;
+  --mint: #7FF5C4;
+  --paper: #EAFFF6;
+  --bg: #04160F;
+  --bg2: #0A2119;
+  --line: rgba(127, 245, 196, .16);
+  --muted: rgba(234, 255, 246, .56);
+  --font: "Inter Tight", system-ui, -apple-system, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--paper); font-family: var(--font); }
+a { color: var(--mint); }
+h1, h2, h3 { font-weight: 700; }
+.loading { padding: 40px; text-align: center; color: var(--muted); }
+
+.auth { min-height: 100vh; display: grid; place-items: center; }
+.auth__card {
+  width: min(360px, 92vw); padding: 32px; border: 1px solid var(--line);
+  border-radius: 16px; background: var(--bg2); display: flex; flex-direction: column; gap: 14px;
+}
+.auth__card h1 { margin: 0 0 6px; font-size: 20px; }
+.auth__card label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); }
+.auth__card input {
+  padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line);
+  background: rgba(255, 255, 255, .03); color: var(--paper);
+}
+.auth__card button {
+  margin-top: 6px; padding: 11px; border-radius: 999px; border: 0;
+  background: linear-gradient(100deg, var(--lime), var(--turq)); color: #04160F; font-weight: 700; cursor: pointer;
+}
+
+.shell { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+.rail { padding: 24px 18px; border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 24px; }
+.brandmark { font-weight: 700; }
+.brandmark span { color: var(--mint); font-weight: 400; }
+.nav { display: flex; flex-direction: column; gap: 8px; }
+.nav a { padding: 8px 10px; border-radius: 8px; color: var(--muted); }
+.nav a.active { background: rgba(127, 245, 196, .08); color: var(--paper); }
+.who { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+.who__name { color: var(--paper); font-weight: 600; }
+.who button {
+  margin-top: 10px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line);
+  background: transparent; color: var(--paper); cursor: pointer;
+}
+
+.content { padding: 28px 32px; overflow: auto; }
+.page__head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+.btn { padding: 9px 16px; border-radius: 999px; background: linear-gradient(100deg, var(--lime), var(--turq)); color: #04160F; font-weight: 700; }
+
+.table { width: 100%; border-collapse: collapse; margin-bottom: 18px; }
+.table th, .table td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; font-size: 13.5px; }
+.table__actions { display: flex; gap: 8px; }
+.table__actions button, .table__actions a {
+  background: transparent; border: 1px solid var(--line); color: var(--paper);
+  padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 12px;
+}
+
+.form fieldset { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 14px; }
+.form label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); }
+.form input, .form textarea, .form select {
+  padding: 9px 11px; border-radius: 8px; border: 1px solid var(--line);
+  background: rgba(255, 255, 255, .03); color: var(--paper);
+}
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.checkbox { flex-direction: row; align-items: center; gap: 8px; }
+.form > fieldset > button {
+  align-self: flex-start; padding: 10px 18px; border-radius: 999px; border: 0;
+  background: linear-gradient(100deg, var(--lime), var(--turq)); color: #04160F; font-weight: 700; cursor: pointer;
+}
+
+.section { margin-top: 36px; }
+.section h2 { font-size: 17px; }
+.count { color: var(--muted); font-weight: 400; font-size: 12px; }
+.subform { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.subform input {
+  padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line);
+  background: rgba(255, 255, 255, .03); color: var(--paper); flex: 1; min-width: 120px;
+}
+.subform button { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: var(--paper); cursor: pointer; }
+
+.error { color: #FF6B6B; font-size: 13px; }
