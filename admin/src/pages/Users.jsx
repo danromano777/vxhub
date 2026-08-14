@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
@@ -44,6 +45,9 @@ export default function Users() {
 
   return (
     <div>
+      <Link to="/" className="backlink">
+        ← Voltar para Clientes
+      </Link>
       <h1>Usuários</h1>
       <table className="table">
         <thead>

@@ -1,3 +1,6 @@
 node_modules/
 .env
 .claude/settings.local.json
+server/admin-dist/
+server/uploads/
+server/public/

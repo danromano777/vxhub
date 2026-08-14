@@ -97,7 +97,18 @@ Configure a API do admin (`admin/src/api.js`) para apontar para `http://localhos
 
 ## Banco de dados
 
-O schema (`db/init/001_schema.sql`) cria as tabelas `users`, `brands`, `brand_logos`, `brand_fonts`, `brand_colors` e já popula um seed inicial das marcas (Canal Brasil, ESPN, NBCU Hub, Sony Channel, etc.). Esse script roda automaticamente na primeira inicialização do container MySQL (via `docker-entrypoint-initdb.d`).
+O schema (`db/init/001_schema.sql`) cria as tabelas `users`, `brands`, `sections` e `blocks`, e já popula um seed inicial com os 11 clientes (Canal Brasil, ESPN, NBCU Hub, Prio, Sony Channel, Sony Home Entertainment, Sony One, Studio Universal, Universal TV, USA, VX). Cada cliente recebe 4 seções padrão (Logos, Fontes, Brandguide, Cores); o Canal Brasil vem com os blocos reais migrados do hub de referência (logos, fontes, cores, brandguide), os demais clientes recebem um bloco de logo principal e blocos de cor derivados do gradiente da marca. Esse script roda automaticamente na primeira inicialização do container MySQL (via `docker-entrypoint-initdb.d`) — se o banco já existir, rode `docker compose down -v` antes de subir de novo para reaplicar o seed.
+
+`sections` são as áreas de conteúdo de cada cliente (fixas ou criadas livremente pelo usuário). `blocks` são os itens dentro de uma seção — cada bloco tem um `block_type` (`image_download`, `video`, `font_card`, `color_palette`, `pdf_viewer`, `link_item` ou `code_snippet`) que determina quais campos são usados.
+
+## Painel admin
+
+O painel (`/admin`) tem 3 áreas:
+- **Clientes**: lista de marcas com logo (passe o mouse sobre o logo para trocar via upload), cores do gradiente e ações de editar/excluir.
+- **Seções**: visão agregada de todas as seções/blocos cadastrados por cliente.
+- **Usuários**: gestão de contas do painel (somente para admins).
+
+Dentro de cada cliente, a tela de **Seções** permite criar seções livremente ("+ Nova Seção") e adicionar blocos de qualquer tipo (imagem, imagem+link, vídeo, fonte, cor, PDF, link ou código) via o seletor "+ Bloco". Uploads de logo e de arquivos de bloco (imagem/fonte/vídeo) são salvos em `server/uploads/` (persistido via volume Docker `app_uploads` para sobreviver a rebuilds).
 
 ## Deploy
 
