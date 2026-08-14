@@ -175,12 +175,10 @@ footer a:hover{color:var(--mint)}
 .codeblock pre{margin:0;padding:18px;overflow-x:auto;font-family:var(--mono);font-size:12px;color:var(--paper)}
 .colors{margin-top:20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:13px}
 .color{border:1px solid var(--line);border-radius:14px;overflow:hidden}
-.color__sw{height:92px;position:relative;display:flex;align-items:flex-start;justify-content:flex-end;padding:8px}
-.color__sw .a-btn{opacity:0;transition:opacity .25s}
-.color:hover .color__sw .a-btn{opacity:1}
+.color__sw{height:92px}
 .color__in{padding:13px 14px 15px;font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:rgba(234,255,246,.55);line-height:1.9}
 .color__in b{display:block;font-size:12px;letter-spacing:.12em;color:var(--paper);margin-bottom:5px}
-.color__in .copyline{cursor:pointer;border-radius:6px;margin:0 -6px;padding:1px 6px;transition:background .15s,color .15s}
+.color__in .copyline{cursor:pointer;border-radius:6px;margin:0 -6px;padding:1px 6px;transition:background .15s,color .15s;user-select:none;-webkit-user-select:none}
 .color__in .copyline:hover{background:rgba(127,245,196,.12);color:var(--paper)}
 .color__in .copyline svg{vertical-align:-2px}
 .color__in .copy-check{display:inline-flex;margin-left:8px;color:var(--lime);vertical-align:-2px}
@@ -535,9 +533,7 @@ function renderBlock(block){
       return '<div class="font"><b'+(fam?' style="font-family:\''+fam+'\'"':'')+'>Aa</b>'+
         '<span>'+esc(block.title||block.font_name||'')+'</span>'+actionBar(block,{expandable:false})+'</div>';
     case 'color_palette':
-      return '<div class="color"><div class="color__sw" style="background:'+esc(block.color_hex||'#222')+'">'+
-        (block.color_hex?'<button class="a-btn" data-act="copy" data-url="'+esc(block.color_hex)+'" title="Copiar HEX">'+ICONS.copy+'</button>':'')+
-        '</div><div class="color__in">'+
+      return '<div class="color"><div class="color__sw" style="background:'+esc(block.color_hex||'#222')+'"></div><div class="color__in">'+
         (block.color_hex?'<b class="copyline" data-act="copy" data-url="'+esc(block.color_hex)+'" title="Copiar HEX">HEX '+esc(block.color_hex.replace('#',''))+'</b>':'')+
         (block.color_rgb?'<div class="copyline" data-act="copy" data-url="'+esc(block.color_rgb)+'" title="Copiar RGB">RGB '+esc(block.color_rgb)+'</div>':'')+
         (block.color_cmyk?'<div class="copyline" data-act="copy" data-url="'+esc(block.color_cmyk)+'" title="Copiar CMYK">CMYK '+esc(block.color_cmyk)+'</div>':'')+
@@ -577,7 +573,7 @@ function renderBrandPage(b){
     if(!blocks.length) return;
     var gridBlocks=blocks.filter(function(bl){return GRID_TYPES.indexOf(bl.block_type)>=0;});
     var flowBlocks=blocks.filter(function(bl){return GRID_TYPES.indexOf(bl.block_type)<0;});
-    html+='<section class="section"><div class="section__head"><h2>'+esc(section.title)+'</h2><span class="count">'+blocks.length+' itens</span></div>';
+    html+='<section class="section"><div class="section__head"><h2>'+esc(section.title)+'</h2></div>';
     if(gridBlocks.length) html+='<div class="mixed-grid">'+gridBlocks.map(renderBlock).join('')+'</div>';
     flowBlocks.forEach(function(bl){ html+=renderBlock(bl); });
     html+='</section>';
@@ -643,16 +639,25 @@ app.addEventListener('click',function(e){
   if(act==='copy'){
     if(navigator.clipboard) navigator.clipboard.writeText(btn.dataset.url).then(function(){
       if(btn.classList.contains('copyline')){
+        var existing=btn.querySelector('.copy-check');
+        if(existing) existing.remove();
+        if(btn._copyTimer) clearTimeout(btn._copyTimer);
         var mark=document.createElement('span');
         mark.className='copy-check';
         mark.innerHTML=ICONS.check;
         btn.appendChild(mark);
-        setTimeout(function(){ mark.remove(); },1200);
+        btn._copyTimer=setTimeout(function(){ mark.remove(); btn._copyTimer=null; },1200);
       } else {
-        var old=btn.innerHTML;
+        if(btn._copyTimer) clearTimeout(btn._copyTimer);
+        if(!btn._origHtml) btn._origHtml=btn.innerHTML;
         btn.innerHTML=ICONS.check;
         btn.classList.add('is-copied');
-        setTimeout(function(){ btn.innerHTML=old; btn.classList.remove('is-copied'); },1200);
+        btn._copyTimer=setTimeout(function(){
+          btn.innerHTML=btn._origHtml;
+          btn.classList.remove('is-copied');
+          btn._origHtml=null;
+          btn._copyTimer=null;
+        },1200);
       }
     });
   } else if(act==='share'){
