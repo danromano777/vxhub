@@ -141,7 +141,7 @@ footer a:hover{color:var(--mint)}
 }
 .drive:hover{transform:translateY(-2px);box-shadow:0 14px 30px -14px rgba(127,245,196,.6)}
 .loading-state{min-height:100vh;display:grid;place-items:center;color:var(--muted);font-family:var(--mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase}
-.mark-logo{max-width:82%;max-height:94px;object-fit:contain;filter:drop-shadow(0 4px 20px rgba(0,0,0,.35))}
+.mark-logo{max-width:82%;max-height:100px;object-fit:contain;filter:drop-shadow(0 4px 20px rgba(0,0,0,.35))}
 .tile.is-pale .mark-logo{filter:none}
 .hero-logo{max-width:min(320px,72%);max-height:96px;object-fit:contain;filter:drop-shadow(0 6px 28px rgba(0,0,0,.35))}
 .hero.is-pale .hero-logo{filter:none}
@@ -353,6 +353,43 @@ function trimLogoPadding(imgEl){
   probe.src = imgEl.src;
 }
 
+/* deixa os logos com "peso visual" parecido: em vez de só caber numa caixa
+   (o que faz um logo largo tipo wordmark parecer bem maior que um ícone
+   quadrado), calcula o tamanho de cada um mirando a mesma área aproximada,
+   respeitando a proporção real do arquivo (sem esticar/distorcer). */
+function fitLogo(imgEl){
+  if(!imgEl) return;
+  function apply(){
+    var w = imgEl.naturalWidth, h = imgEl.naturalHeight;
+    if(!w || !h) return;
+    var face = imgEl.closest('.face');
+    var maxW = (face ? face.clientWidth : 260) * 0.82;
+    var maxH = 100;
+    var BASE = 78;
+    var ratio = w / h;
+    var targetW = BASE * Math.sqrt(ratio);
+    var targetH = BASE / Math.sqrt(ratio);
+    var scale = Math.min(maxW / targetW, maxH / targetH, 1);
+    imgEl.style.width = Math.round(targetW * scale) + 'px';
+    imgEl.style.height = Math.round(targetH * scale) + 'px';
+  }
+  imgEl._fitLogoApply = apply;
+  imgEl.addEventListener('load', apply);
+  if(imgEl.complete && imgEl.naturalWidth) apply();
+}
+
+(function(){
+  var t;
+  window.addEventListener('resize', function(){
+    clearTimeout(t);
+    t = setTimeout(function(){
+      document.querySelectorAll('.mark-logo').forEach(function(img){
+        if(img._fitLogoApply) img._fitLogoApply();
+      });
+    }, 150);
+  });
+})();
+
 function home(){
   loading();
   Promise.all([
@@ -397,7 +434,10 @@ function renderHome(){
   '<a href="https://vxcomunicacao.com.br/" target="_blank" rel="noopener">VX Comunicação</a></footer></div>';
 
   wireTiles();
-  app.querySelectorAll('.mark-logo').forEach(trimLogoPadding);
+  app.querySelectorAll('.mark-logo').forEach(function(img){
+    fitLogo(img);
+    trimLogoPadding(img);
+  });
   var chips=app.querySelectorAll('.chip'), tiless=app.querySelectorAll('.tile'), tally=app.querySelector('#tally');
   chips.forEach(function(chip){
     chip.addEventListener('click',function(){
