@@ -191,20 +191,20 @@ INSERT INTO blocks (section_id, block_type, external_url, sort_order)
 SELECT s.id, 'pdf_viewer', 'https://drive.google.com/file/d/1ilFyHSYBt43bFtrLBsSbbbw5CL_9uaD_/preview', 0
 FROM sections s JOIN brands b ON b.id = s.brand_id WHERE b.slug = 'canal-brasil' AND s.type = 'brandguide';
 
-INSERT INTO blocks (section_id, block_type, title, color_hex, color_pantone, sort_order)
-SELECT s.id, 'color_palette', d.title, d.hex, d.pantone, d.ord
+INSERT INTO blocks (section_id, block_type, title, color_hex, color_rgb, color_cmyk, color_pantone, sort_order)
+SELECT s.id, 'color_palette', d.title, d.hex, d.rgb, d.cmyk, d.pantone, d.ord
 FROM sections s JOIN brands b ON b.id = s.brand_id
 CROSS JOIN (
-  SELECT 'Preto' title,'#000000' hex,'BLACK C' pantone,0 ord
-  UNION ALL SELECT 'Amarelo','#FFDC00','108 C',1
-  UNION ALL SELECT 'Verde','#003C00','2427 C',2
-  UNION ALL SELECT 'Marrom','#3C2D19','7554 C',3
-  UNION ALL SELECT 'Vermelho','#FF3228','BRIGHT RED',4
-  UNION ALL SELECT 'Verde Água','#00E1BE','325 C',5
-  UNION ALL SELECT 'Cinza','#F8F9F7','White Smoke',6
-  UNION ALL SELECT 'Azul','#005096','2144 C',7
-  UNION ALL SELECT 'Laranja','#FF8C50','163 C',8
-  UNION ALL SELECT 'Branco','#ffffff','White',9
+  SELECT 'Preto' title,'#000000' hex,'0 0 0' rgb,'0 0 0 100' cmyk,'BLACK C' pantone,0 ord
+  UNION ALL SELECT 'Amarelo','#FFDC00','255 220 0','0 14 100 0','108 C',1
+  UNION ALL SELECT 'Verde','#003C00','0 60 0','100 0 100 76','2427 C',2
+  UNION ALL SELECT 'Marrom','#3C2D19','60 45 25','0 25 58 76','7554 C',3
+  UNION ALL SELECT 'Vermelho','#FF3228','255 50 40','0 80 84 0','BRIGHT RED',4
+  UNION ALL SELECT 'Verde Água','#00E1BE','0 225 190','100 0 16 12','325 C',5
+  UNION ALL SELECT 'Cinza','#F8F9F7','248 249 247','0 0 1 2','White Smoke',6
+  UNION ALL SELECT 'Azul','#005096','0 80 150','100 47 0 41','2144 C',7
+  UNION ALL SELECT 'Laranja','#FF8C50','255 140 80','0 45 69 0','163 C',8
+  UNION ALL SELECT 'Branco','#ffffff','255 255 255','0 0 0 0','White',9
 ) d
 WHERE b.slug = 'canal-brasil' AND s.type = 'cores';
 
