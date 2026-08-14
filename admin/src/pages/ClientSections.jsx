@@ -3,6 +3,17 @@ import { Link, useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
+const BLOCK_TYPES = [
+  { key: 'imagem', label: 'Imagem', icon: '🖼️' },
+  { key: 'imglink', label: 'Img+Link', icon: '📎' },
+  { key: 'video', label: 'Vídeo', icon: '🎬' },
+  { key: 'fonte', label: 'Fonte', icon: '🔤' },
+  { key: 'cor', label: 'Cor', icon: '🎨' },
+  { key: 'pdf', label: 'PDF', icon: '📄' },
+  { key: 'link', label: 'Link', icon: '🔗' },
+  { key: 'codigo', label: 'Código', icon: '💻' },
+];
+
 export default function ClientSections() {
   const { id } = useParams();
   const { user } = useAuth();
@@ -106,9 +117,61 @@ function AccordionSection({ title, countLabel, open, onToggle, children }) {
   );
 }
 
+function NovoBlocoModal({ enabledTypes, onSelect, onClose }) {
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal__head">
+          <h3>Novo Bloco</h3>
+          <button className="modal__close" onClick={onClose}>
+            ✕
+          </button>
+        </div>
+        <div className="modal__grid">
+          {BLOCK_TYPES.map((t) => {
+            const enabled = enabledTypes.includes(t.key);
+            return (
+              <button
+                key={t.key}
+                type="button"
+                className={`modal__option ${enabled ? '' : 'disabled'}`}
+                disabled={!enabled}
+                onClick={() => onSelect(t.key)}
+                title={enabled ? '' : 'Em breve'}
+              >
+                <span className="modal__option-icon">{t.icon}</span>
+                <span className="modal__option-label">{t.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function LogosSection({ brand, canWrite, onChange }) {
   const [name, setName] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+
+  function handleSelectType(type) {
+    if (type === 'imagem') {
+      setShowModal(false);
+      setShowForm(true);
+    } else if (type === 'link') {
+      setShowModal(false);
+      handleEditDriveLink();
+    }
+  }
+
+  async function handleEditDriveLink() {
+    const url = prompt('Link do Drive com todos os logos', brand.drive_logos_url || '');
+    if (url === null) return;
+    await api.updateBrand(brand.id, { ...brand, drive_logos_url: url });
+    onChange();
+  }
 
   async function handleAdd(e) {
     e.preventDefault();
@@ -116,6 +179,7 @@ function LogosSection({ brand, canWrite, onChange }) {
     await api.addItem(brand.id, 'logos', { name, image_url: imageUrl, hex: '' });
     setName('');
     setImageUrl('');
+    setShowForm(false);
     onChange();
   }
 
@@ -161,11 +225,23 @@ function LogosSection({ brand, canWrite, onChange }) {
 
       {canWrite && (
         <>
-          <form onSubmit={handleAdd} className="subform">
-            <input placeholder="Nome do logo" value={name} onChange={(e) => setName(e.target.value)} />
-            <input placeholder="URL da imagem" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
-            <button type="submit">+ Bloco</button>
-          </form>
+          {showForm ? (
+            <form onSubmit={handleAdd} className="subform">
+              <input placeholder="Nome do logo" value={name} onChange={(e) => setName(e.target.value)} />
+              <input placeholder="URL da imagem" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
+              <button type="submit">Salvar</button>
+              <button type="button" onClick={() => setShowForm(false)}>
+                Cancelar
+              </button>
+            </form>
+          ) : (
+            <button className="btn" type="button" onClick={() => setShowModal(true)}>
+              + Bloco
+            </button>
+          )}
+          {showModal && (
+            <NovoBlocoModal enabledTypes={['imagem', 'link']} onSelect={handleSelectType} onClose={() => setShowModal(false)} />
+          )}
           {!!brand.logos.length && (
             <div className="manage-list">
               <p className="manage-list__title">Gerenciar blocos:</p>
@@ -192,12 +268,32 @@ function LogosSection({ brand, canWrite, onChange }) {
 
 function FontesSection({ brand, canWrite, onChange }) {
   const [name, setName] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+
+  function handleSelectType(type) {
+    if (type === 'fonte') {
+      setShowModal(false);
+      setShowForm(true);
+    } else if (type === 'link') {
+      setShowModal(false);
+      handleEditDriveLink();
+    }
+  }
+
+  async function handleEditDriveLink() {
+    const url = prompt('Link do Drive com todas as fontes', brand.drive_fonts_url || '');
+    if (url === null) return;
+    await api.updateBrand(brand.id, { ...brand, drive_fonts_url: url });
+    onChange();
+  }
 
   async function handleAdd(e) {
     e.preventDefault();
     if (!name) return;
     await api.addItem(brand.id, 'fonts', { name });
     setName('');
+    setShowForm(false);
     onChange();
   }
 
@@ -239,10 +335,22 @@ function FontesSection({ brand, canWrite, onChange }) {
 
       {canWrite && (
         <>
-          <form onSubmit={handleAdd} className="subform">
-            <input placeholder="Nome da fonte" value={name} onChange={(e) => setName(e.target.value)} />
-            <button type="submit">+ Bloco</button>
-          </form>
+          {showForm ? (
+            <form onSubmit={handleAdd} className="subform">
+              <input placeholder="Nome da fonte" value={name} onChange={(e) => setName(e.target.value)} />
+              <button type="submit">Salvar</button>
+              <button type="button" onClick={() => setShowForm(false)}>
+                Cancelar
+              </button>
+            </form>
+          ) : (
+            <button className="btn" type="button" onClick={() => setShowModal(true)}>
+              + Bloco
+            </button>
+          )}
+          {showModal && (
+            <NovoBlocoModal enabledTypes={['fonte', 'link']} onSelect={handleSelectType} onClose={() => setShowModal(false)} />
+          )}
           {!!brand.fonts.length && (
             <div className="manage-list">
               <p className="manage-list__title">Gerenciar blocos:</p>
@@ -269,12 +377,32 @@ function FontesSection({ brand, canWrite, onChange }) {
 
 function ColoresSection({ brand, canWrite, onChange }) {
   const [draft, setDraft] = useState({ hex: '', rgb: '', cmyk: '', pantone: '' });
+  const [showModal, setShowModal] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+
+  function handleSelectType(type) {
+    if (type === 'cor') {
+      setShowModal(false);
+      setShowForm(true);
+    } else if (type === 'link') {
+      setShowModal(false);
+      handleEditDriveLink();
+    }
+  }
+
+  async function handleEditDriveLink() {
+    const url = prompt('Link do Drive com as cores/swatches', brand.drive_colors_url || '');
+    if (url === null) return;
+    await api.updateBrand(brand.id, { ...brand, drive_colors_url: url });
+    onChange();
+  }
 
   async function handleAdd(e) {
     e.preventDefault();
     if (!draft.hex) return;
     await api.addItem(brand.id, 'colors', draft);
     setDraft({ hex: '', rgb: '', cmyk: '', pantone: '' });
+    setShowForm(false);
     onChange();
   }
 
@@ -327,17 +455,33 @@ function ColoresSection({ brand, canWrite, onChange }) {
 
       {canWrite && (
         <>
-          <form onSubmit={handleAdd} className="subform">
-            <input placeholder="Hex" value={draft.hex} onChange={(e) => setDraft((d) => ({ ...d, hex: e.target.value }))} />
-            <input placeholder="RGB" value={draft.rgb} onChange={(e) => setDraft((d) => ({ ...d, rgb: e.target.value }))} />
-            <input placeholder="CMYK" value={draft.cmyk} onChange={(e) => setDraft((d) => ({ ...d, cmyk: e.target.value }))} />
-            <input
-              placeholder="Pantone"
-              value={draft.pantone}
-              onChange={(e) => setDraft((d) => ({ ...d, pantone: e.target.value }))}
-            />
-            <button type="submit">+ Bloco</button>
-          </form>
+          {showForm ? (
+            <form onSubmit={handleAdd} className="subform">
+              <input placeholder="Hex" value={draft.hex} onChange={(e) => setDraft((d) => ({ ...d, hex: e.target.value }))} />
+              <input placeholder="RGB" value={draft.rgb} onChange={(e) => setDraft((d) => ({ ...d, rgb: e.target.value }))} />
+              <input
+                placeholder="CMYK"
+                value={draft.cmyk}
+                onChange={(e) => setDraft((d) => ({ ...d, cmyk: e.target.value }))}
+              />
+              <input
+                placeholder="Pantone"
+                value={draft.pantone}
+                onChange={(e) => setDraft((d) => ({ ...d, pantone: e.target.value }))}
+              />
+              <button type="submit">Salvar</button>
+              <button type="button" onClick={() => setShowForm(false)}>
+                Cancelar
+              </button>
+            </form>
+          ) : (
+            <button className="btn" type="button" onClick={() => setShowModal(true)}>
+              + Bloco
+            </button>
+          )}
+          {showModal && (
+            <NovoBlocoModal enabledTypes={['cor', 'link']} onSelect={handleSelectType} onClose={() => setShowModal(false)} />
+          )}
           {!!brand.colors.length && (
             <div className="manage-list">
               <p className="manage-list__title">Gerenciar blocos:</p>
@@ -363,6 +507,15 @@ function ColoresSection({ brand, canWrite, onChange }) {
 }
 
 function BrandguideSection({ brand, canWrite, onChange }) {
+  const [showModal, setShowModal] = useState(false);
+
+  function handleSelectType(type) {
+    if (type === 'pdf') {
+      setShowModal(false);
+      handleEdit();
+    }
+  }
+
   async function handleEdit() {
     const url = prompt('URL de preview do brandguide (ex: link do Drive em modo /preview)', brand.brandguide_url || '');
     if (url === null) return;
@@ -379,9 +532,18 @@ function BrandguideSection({ brand, canWrite, onChange }) {
       )}
       {canWrite && (
         <div style={{ marginTop: 12 }}>
-          <button className="icon-btn" onClick={handleEdit}>
-            ✎ Editar link do brandguide
-          </button>
+          {brand.brandguide_url ? (
+            <button className="icon-btn" onClick={handleEdit}>
+              ✎ Editar link do brandguide
+            </button>
+          ) : (
+            <button className="btn" type="button" onClick={() => setShowModal(true)}>
+              + Bloco
+            </button>
+          )}
+          {showModal && (
+            <NovoBlocoModal enabledTypes={['pdf']} onSelect={handleSelectType} onClose={() => setShowModal(false)} />
+          )}
         </div>
       )}
     </div>
