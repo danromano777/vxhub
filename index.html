@@ -148,7 +148,13 @@ footer a:hover{color:var(--mint)}
 .hero.is-pale .hero-logo{filter:none}
 .mixed-grid{margin-top:20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:13px}
 .assets{margin-top:20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:13px}
-.asset{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:rgba(255,255,255,.02);transition:border-color .25s,transform .25s}
+.asset,.font,.color,.empty{
+  background:rgba(255,255,255,.07);
+  backdrop-filter:blur(22px) saturate(160%);
+  -webkit-backdrop-filter:blur(22px) saturate(160%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 10px 30px -20px rgba(0,0,0,.6);
+}
+.asset{border:1px solid var(--line);border-radius:14px;overflow:hidden;transition:border-color .25s,transform .25s}
 .asset:hover{border-color:rgba(127,245,196,.4);transform:translateY(-3px)}
 .asset__sw{position:relative;height:130px;display:grid;place-items:center;background:repeating-conic-gradient(rgba(255,255,255,.05) 0 25%, transparent 0 50%) 0 0/16px 16px}
 .asset__img{width:100%;height:100%;object-fit:contain;padding:14px}
@@ -160,20 +166,20 @@ footer a:hover{color:var(--mint)}
 .a-btn{width:32px;height:32px;border-radius:999px;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.35);color:#fff;display:grid;place-items:center;font-size:13px;cursor:pointer;text-decoration:none}
 .a-btn:hover{background:rgba(0,0,0,.55);border-color:rgba(255,255,255,.5)}
 .fonts{margin-top:20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:13px}
-.font{position:relative;border:1px solid var(--line);border-radius:14px;padding:22px 20px;background:rgba(255,255,255,.02);transition:border-color .25s,transform .25s}
+.font{position:relative;border:1px solid var(--line);border-radius:14px;padding:22px 20px;transition:border-color .25s,transform .25s}
 .font:hover{border-color:rgba(127,245,196,.4);transform:translateY(-3px)}
 .font b{display:block;font-family:var(--display);font-weight:800;font-size:44px;line-height:1;letter-spacing:-.04em;color:var(--paper)}
 .font span{display:block;margin-top:13px;font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:rgba(234,255,246,.55)}
 .codeblock{margin-top:20px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:rgba(0,0,0,.25)}
 .codeblock pre{margin:0;padding:18px;overflow-x:auto;font-family:var(--mono);font-size:12px;color:var(--paper)}
 .colors{margin-top:20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:13px}
-.color{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:rgba(255,255,255,.02)}
+.color{border:1px solid var(--line);border-radius:14px;overflow:hidden}
 .color__sw{height:92px}
 .color__in{padding:13px 14px 15px;font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:rgba(234,255,246,.55);line-height:1.9}
 .color__in b{display:block;font-size:12px;letter-spacing:.12em;color:var(--paper);margin-bottom:5px}
 .guide{margin-top:20px;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:rgba(0,0,0,.25)}
 .guide iframe{display:block;width:100%;height:min(68vh,600px);border:0}
-.empty{margin-top:20px;padding:32px 24px;border:1px dashed rgba(127,245,196,.24);border-radius:16px;font-size:14.5px;line-height:1.65;color:var(--muted);max-width:60ch}
+.empty{margin-top:20px;padding:32px 24px;border:1px dashed rgba(127,245,196,.28);border-radius:16px;font-size:14.5px;line-height:1.65;color:var(--muted);max-width:60ch}
 .empty b{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--mint);margin-bottom:9px;font-weight:400}
 .nextnav{margin-top:clamp(40px,4.6vw,66px);padding-top:20px;border-top:1px solid rgba(127,245,196,.12);display:flex;gap:10px;flex-wrap:wrap}
 .nextnav a{padding:9px 15px;border:1px solid var(--line);border-radius:999px;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:rgba(234,255,246,.6);transition:color .22s,border-color .22s,transform .22s}
