@@ -41,9 +41,12 @@ services:
       SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD}
     ports:
       - "${APP_PORT:-3000}:3000"
+    volumes:
+      - app_uploads:/app/uploads
     depends_on:
       db:
         condition: service_healthy
 
 volumes:
   mysql_data:
+  app_uploads:

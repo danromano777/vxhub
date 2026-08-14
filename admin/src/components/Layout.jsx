@@ -1,24 +1,26 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 
 export default function Layout() {
   const { user, logout } = useAuth();
   return (
     <div className="shell">
-      <aside className="rail">
-        <div className="brandmark">
-          vx.hub <span>admin</span>
+      <header className="topbar">
+        <div className="topbar__inner">
+          <div className="topbar__brand">
+            <span className="brandmark">
+              vx<span>.hub</span>
+            </span>
+            <span className="topbar__tag">Admin</span>
+          </div>
+          <div className="topbar__user">
+            <span className="topbar__email">{user.email}</span>
+            <button className="btn-ghost" onClick={logout}>
+              Sair
+            </button>
+          </div>
         </div>
-        <nav className="nav">
-          <NavLink to="/" end>Marcas</NavLink>
-          {user.role === 'admin' && <NavLink to="/users">Usuários</NavLink>}
-        </nav>
-        <div className="who">
-          <div className="who__name">{user.name}</div>
-          <div className="who__role">{user.role}</div>
-          <button onClick={logout}>Sair</button>
-        </div>
-      </aside>
+      </header>
       <main className="content">
         <Outlet />
       </main>

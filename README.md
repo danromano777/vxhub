@@ -97,7 +97,16 @@ Configure a API do admin (`admin/src/api.js`) para apontar para `http://localhos
 
 ## Banco de dados
 
-O schema (`db/init/001_schema.sql`) cria as tabelas `users`, `brands`, `brand_logos`, `brand_fonts`, `brand_colors` e já popula um seed inicial das marcas (Canal Brasil, ESPN, NBCU Hub, Sony Channel, etc.). Esse script roda automaticamente na primeira inicialização do container MySQL (via `docker-entrypoint-initdb.d`).
+O schema (`db/init/001_schema.sql`) cria as tabelas `users`, `brands`, `brand_logos`, `brand_fonts`, `brand_colors` e já popula um seed inicial com os 11 clientes (Canal Brasil, ESPN, NBCU Hub, Prio, Sony Channel, Sony Home Entertainment, Sony One, Studio Universal, Universal TV, USA, VX), incluindo logo e cores de cada um. Esse script roda automaticamente na primeira inicialização do container MySQL (via `docker-entrypoint-initdb.d`) — se o banco já existir, rode `docker compose down -v` antes de subir de novo para reaplicar o seed.
+
+## Painel admin
+
+O painel (`/admin`) tem 3 áreas:
+- **Clientes**: lista de marcas com logo (clique/arraste sobre o logo para trocar via upload), cores do gradiente e ações de editar/excluir.
+- **Seções**: visão agregada dos links de Logos/Fontes/Brandguide/Cores cadastrados por cliente.
+- **Usuários**: gestão de contas do painel (somente para admins).
+
+Upload de logo salva o arquivo em `server/uploads/logos/` (persistido via volume Docker `app_uploads` para sobreviver a rebuilds).
 
 ## Deploy
 

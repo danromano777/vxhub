@@ -1,6 +1,29 @@
 import { Router } from 'express';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 import { pool } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const uploadsDir = path.join(__dirname, '..', '..', 'uploads', 'logos');
+fs.mkdirSync(uploadsDir, { recursive: true });
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: uploadsDir,
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase() || '.png';
+      cb(null, `${req.params.id}-${Date.now()}${ext}`);
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) return cb(new Error('Arquivo deve ser uma imagem'));
+    cb(null, true);
+  },
+});
 
 const router = Router();
 router.use(requireAuth);
@@ -9,7 +32,7 @@ const CAN_WRITE = requireRole('admin', 'editor');
 
 const BRAND_FIELDS = [
   'slug', 'name', 'display_html', 'brand_group', 'filter_key', 'description',
-  'grad_a', 'grad_b', 'grad_c', 'grad_d', 'grad_base', 'grad_glow', 'grad_pale',
+  'grad_a', 'grad_b', 'grad_c', 'grad_d', 'grad_base', 'grad_glow', 'grad_pale', 'logo_url',
   'drive_logos_url', 'drive_fonts_url', 'drive_colors_url', 'brandguide_url', 'sort_order',
 ];
 
@@ -55,6 +78,13 @@ router.put('/:id', CAN_WRITE, async (req, res) => {
 router.delete('/:id', CAN_WRITE, async (req, res) => {
   await pool.query('DELETE FROM brands WHERE id = ?', [req.params.id]);
   res.status(204).end();
+});
+
+router.post('/:id/logo', CAN_WRITE, upload.single('logo'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+  const logoUrl = `/uploads/logos/${req.file.filename}`;
+  await pool.query('UPDATE brands SET logo_url = ? WHERE id = ?', [logoUrl, req.params.id]);
+  res.json({ logo_url: logoUrl });
 });
 
 function subResource(table, fields) {

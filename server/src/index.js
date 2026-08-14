@@ -22,6 +22,9 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Erro interno do servidor' });
 });
 
+const uploadsDir = path.join(__dirname, '..', 'uploads');
+app.use('/uploads', express.static(uploadsDir));
+
 const adminDist = path.join(__dirname, '..', 'admin-dist');
 app.use('/admin', express.static(adminDist));
 app.get(/^\/admin(\/.*)?$/, (req, res) => {

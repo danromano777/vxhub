@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
 const emptyBrand = {
   slug: '', name: '', display_html: '', brand_group: '', filter_key: '', description: '',
   grad_a: '#C4FF4D', grad_b: '#18E0C8', grad_c: '#05463F', grad_d: '#E6FF9A',
-  grad_base: '#07261f', grad_glow: 'rgba(196,255,77,.45)', grad_pale: false,
+  grad_base: '#07261f', grad_glow: 'rgba(196,255,77,.45)', grad_pale: false, logo_url: '',
   drive_logos_url: '', drive_fonts_url: '', drive_colors_url: '', brandguide_url: '', sort_order: 0,
 };
 
@@ -68,6 +68,9 @@ export default function BrandEdit() {
 
   return (
     <div>
+      <Link to="/" className="backlink">
+        ← Voltar para Clientes
+      </Link>
       <h1>{isNew ? 'Nova marca' : brand.name}</h1>
       <form onSubmit={handleSave} className="form">
         <fieldset disabled={!canWrite}>
@@ -98,15 +101,28 @@ export default function BrandEdit() {
             <textarea value={brand.description} onChange={(e) => set('description', e.target.value)} />
           </label>
 
+          <h3>Logo</h3>
+          <div className="grid2">
+            <label>
+              URL do logo
+              <input value={brand.logo_url || ''} onChange={(e) => set('logo_url', e.target.value)} />
+            </label>
+            {brand.logo_url && (
+              <div className="client-logo" style={{ width: 56, height: 56 }}>
+                <img src={brand.logo_url} alt={brand.name} />
+              </div>
+            )}
+          </div>
+
           <h3>Gradiente do card</h3>
           <div className="grid2">
             {['grad_a', 'grad_b', 'grad_c', 'grad_d', 'grad_base'].map((f) => (
               <label key={f}>
-                {f} <input type="text" value={brand[f]} onChange={(e) => set(f, e.target.value)} />
+                {f} <input type="text" value={brand[f] || ''} onChange={(e) => set(f, e.target.value)} />
               </label>
             ))}
             <label>
-              grad_glow <input value={brand.grad_glow} onChange={(e) => set('grad_glow', e.target.value)} />
+              grad_glow <input value={brand.grad_glow || ''} onChange={(e) => set('grad_glow', e.target.value)} />
             </label>
             <label className="checkbox">
               <input type="checkbox" checked={!!brand.grad_pale} onChange={(e) => set('grad_pale', e.target.checked)} />

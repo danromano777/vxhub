@@ -16,9 +16,9 @@ async function request(path, options = {}) {
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
 
-  if (res.status === 401) {
+  if (res.status === 401 && !path.startsWith('/auth/')) {
     localStorage.removeItem('vxhub_token');
-    if (!path.startsWith('/auth/')) window.location.href = '/admin/login';
+    window.location.href = '/admin/login';
     throw new Error('Sessão expirada');
   }
   if (!res.ok) {
@@ -26,6 +26,22 @@ async function request(path, options = {}) {
     throw new Error(err.error || `Erro ${res.status}`);
   }
   if (res.status === 204) return null;
+  return res.json();
+}
+
+async function uploadLogo(brandId, file) {
+  const token = getToken();
+  const form = new FormData();
+  form.append('logo', file);
+  const res = await fetch(`${BASE}/brands/${brandId}/logo`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Erro desconhecido' }));
+    throw new Error(err.error || `Erro ${res.status}`);
+  }
   return res.json();
 }
 
@@ -38,6 +54,7 @@ export const api = {
   createBrand: (data) => request('/brands', { method: 'POST', body: data }),
   updateBrand: (id, data) => request(`/brands/${id}`, { method: 'PUT', body: data }),
   deleteBrand: (id) => request(`/brands/${id}`, { method: 'DELETE' }),
+  uploadLogo,
 
   addItem: (brandId, kind, data) => request(`/brands/${brandId}/${kind}`, { method: 'POST', body: data }),
   updateItem: (brandId, kind, itemId, data) =>
