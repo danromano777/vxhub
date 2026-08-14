@@ -5,6 +5,27 @@ import { useAuth } from '../context/AuthContext.jsx';
 
 const GRID_TYPES = ['image_download', 'video', 'font_card', 'color_palette'];
 
+function hexToRgb(hex) {
+  const clean = String(hex).replace('#', '').trim();
+  const full = clean.length === 3 ? clean.split('').map((c) => c + c).join('') : clean;
+  if (!/^[0-9a-fA-F]{6}$/.test(full)) return null;
+  return {
+    r: parseInt(full.slice(0, 2), 16),
+    g: parseInt(full.slice(2, 4), 16),
+    b: parseInt(full.slice(4, 6), 16),
+  };
+}
+
+function rgbToCmyk(r, g, b) {
+  if (r === 0 && g === 0 && b === 0) return { c: 0, m: 0, y: 0, k: 100 };
+  const rr = r / 255, gg = g / 255, bb = b / 255;
+  const k = 1 - Math.max(rr, gg, bb);
+  const c = Math.round(((1 - rr - k) / (1 - k)) * 100);
+  const m = Math.round(((1 - gg - k) / (1 - k)) * 100);
+  const y = Math.round(((1 - bb - k) / (1 - k)) * 100);
+  return { c, m, y, k: Math.round(k * 100) };
+}
+
 const BLOCK_TYPE_META = {
   imagem: {
     blockType: 'image_download', label: 'Imagem', icon: '🖼️',
@@ -378,7 +399,23 @@ function SectionCard({ brand, section, canWrite, onChange, onDeleteSection }) {
                     <input
                       placeholder={f.label}
                       value={draft[f.key] || ''}
-                      onChange={(e) => setDraft((d) => ({ ...d, [f.key]: e.target.value }))}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (f.key === 'color_hex') {
+                          const rgb = hexToRgb(value);
+                          if (rgb) {
+                            const cmyk = rgbToCmyk(rgb.r, rgb.g, rgb.b);
+                            setDraft((d) => ({
+                              ...d,
+                              color_hex: value,
+                              color_rgb: `${rgb.r} ${rgb.g} ${rgb.b}`,
+                              color_cmyk: `${cmyk.c} ${cmyk.m} ${cmyk.y} ${cmyk.k}`,
+                            }));
+                            return;
+                          }
+                        }
+                        setDraft((d) => ({ ...d, [f.key]: value }));
+                      }}
                     />
                   )}
                   {f.upload && (

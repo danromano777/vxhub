@@ -100,10 +100,43 @@ function ClientesTab({ brands, canWrite, onChange }) {
   );
 }
 
+const CORNER_LABELS = [
+  { key: 'grad_a', label: 'Topo esquerdo' },
+  { key: 'grad_b', label: 'Topo direito' },
+  { key: 'grad_c', label: 'Baixo esquerdo' },
+  { key: 'grad_d', label: 'Baixo direito' },
+];
+
 function ClientCard({ brand, canWrite, onChange, onDelete }) {
   const fileRef = useRef(null);
   const [uploading, setUploading] = useState(false);
+  const [editingColors, setEditingColors] = useState(false);
+  const [colorDraft, setColorDraft] = useState(null);
+  const [savingColors, setSavingColors] = useState(false);
   const navigate = useNavigate();
+
+  function openColorEditor() {
+    setColorDraft({
+      grad_a: brand.grad_a || '#2A2A2A',
+      grad_b: brand.grad_b || '#1A1A1A',
+      grad_c: brand.grad_c || '#0F0F0F',
+      grad_d: brand.grad_d || '#242424',
+    });
+    setEditingColors(true);
+  }
+
+  async function handleSaveColors() {
+    setSavingColors(true);
+    try {
+      await api.updateBrand(brand.id, { ...brand, ...colorDraft });
+      setEditingColors(false);
+      onChange();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSavingColors(false);
+    }
+  }
 
   async function handleUpload(e) {
     const file = e.target.files?.[0];
@@ -173,10 +206,47 @@ function ClientCard({ brand, canWrite, onChange, onDelete }) {
             <span className="swatches__empty">Não definida</span>
           )}
         </div>
-        <Link className="link-btn" to={`/brands/${brand.id}`}>
-          Editar cores
-        </Link>
+        {canWrite && (
+          <button className="link-btn" onClick={() => (editingColors ? setEditingColors(false) : openColorEditor())}>
+            {editingColors ? 'Cancelar' : 'Editar cores'}
+          </button>
+        )}
       </div>
+
+      {editingColors && colorDraft && (
+        <div className="color-editor">
+          <p className="color-editor__hint">Selecione 4 cores para o gradiente animado:</p>
+          <div className="color-editor__grid">
+            {CORNER_LABELS.map((c) => (
+              <label key={c.key} className="color-editor__field">
+                <input
+                  type="color"
+                  value={colorDraft[c.key]}
+                  onChange={(e) => setColorDraft((d) => ({ ...d, [c.key]: e.target.value }))}
+                />
+                <span>{c.label}</span>
+              </label>
+            ))}
+          </div>
+          <div className="color-editor__footer">
+            <div className="color-editor__preview">
+              <span>Preview:</span>
+              <span
+                className="color-editor__blob"
+                style={{
+                  background: `radial-gradient(circle at 25% 25%, ${colorDraft.grad_a}, transparent 60%),
+                    radial-gradient(circle at 75% 25%, ${colorDraft.grad_b}, transparent 60%),
+                    radial-gradient(circle at 25% 75%, ${colorDraft.grad_c}, transparent 60%),
+                    radial-gradient(circle at 75% 75%, ${colorDraft.grad_d}, transparent 60%)`,
+                }}
+              />
+            </div>
+            <button className="btn" type="button" disabled={savingColors} onClick={handleSaveColors}>
+              {savingColors ? 'Salvando…' : 'Salvar cores'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
