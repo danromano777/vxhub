@@ -14,7 +14,11 @@ export default function SiteContent() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    api.getSiteContent().then(setContent).finally(() => setLoading(false));
+    api
+      .getSiteContent()
+      .then(setContent)
+      .catch((err) => setError(`Não foi possível carregar o conteúdo do site: ${err.message}`))
+      .finally(() => setLoading(false));
   }, []);
 
   function set(field, value) {
