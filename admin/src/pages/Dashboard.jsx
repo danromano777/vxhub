@@ -3,13 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
-const SECTION_TYPES = [
-  { key: 'drive_logos_url', label: 'Logos' },
-  { key: 'drive_fonts_url', label: 'Fontes' },
-  { key: 'brandguide_url', label: 'Brandguide' },
-  { key: 'drive_colors_url', label: 'Cores' },
-];
-
 export default function Dashboard() {
   const { user } = useAuth();
   const canWrite = user.role === 'admin' || user.role === 'editor';
@@ -26,10 +19,8 @@ export default function Dashboard() {
 
   if (loading) return <p className="loading">Carregando…</p>;
 
-  const sectionsCount = brands.reduce(
-    (total, b) => total + SECTION_TYPES.filter((s) => b[s.key]).length,
-    0
-  );
+  const sectionsCount = brands.reduce((total, b) => total + Number(b.sections_count || 0), 0);
+  const blocksCount = brands.reduce((total, b) => total + Number(b.blocks_count || 0), 0);
 
   return (
     <div>
@@ -51,8 +42,8 @@ export default function Dashboard() {
         <div className="stat-card">
           <div className="stat-card__icon stat-card__icon--green">📄</div>
           <div>
-            <div className="stat-card__value">0</div>
-            <div className="stat-card__label">Arquivos</div>
+            <div className="stat-card__value">{blocksCount}</div>
+            <div className="stat-card__label">Blocos</div>
           </div>
         </div>
       </div>
@@ -188,21 +179,30 @@ function ClientCard({ brand, canWrite, onChange, onDelete }) {
 }
 
 function SecoesTab({ brands }) {
-  const rows = brands.flatMap((b) =>
-    SECTION_TYPES.filter((s) => b[s.key]).map((s) => ({ brand: b, type: s }))
-  );
+  const [rows, setRows] = useState(null);
 
+  useEffect(() => {
+    Promise.all(brands.map((b) => api.getBrand(b.id))).then((details) => {
+      setRows(
+        details.flatMap((d) =>
+          d.sections.map((s) => ({ brand: d, section: s }))
+        )
+      );
+    });
+  }, [brands]);
+
+  if (rows === null) return <p className="loading">Carregando…</p>;
   if (!rows.length) return <p className="loading">Nenhuma seção cadastrada ainda.</p>;
 
   return (
     <div className="sections-grid">
-      {rows.map(({ brand, type }) => (
-        <Link key={`${brand.id}-${type.key}`} to={`/brands/${brand.id}/sections`} className="section-row">
+      {rows.map(({ brand, section }) => (
+        <Link key={section.id} to={`/brands/${brand.id}/sections`} className="section-row">
           <div>
-            <div className="section-row__name">{type.label}</div>
+            <div className="section-row__name">{section.title}</div>
             <div className="section-row__brand">{brand.name}</div>
           </div>
-          <span className="badge">{type.label}</span>
+          <span className="badge">{section.blocks.length} blocos</span>
         </Link>
       ))}
     </div>

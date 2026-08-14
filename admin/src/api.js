@@ -29,11 +29,11 @@ async function request(path, options = {}) {
   return res.json();
 }
 
-async function uploadLogo(brandId, file) {
+async function uploadFile(url, fieldName, file) {
   const token = getToken();
   const form = new FormData();
-  form.append('logo', file);
-  const res = await fetch(`${BASE}/brands/${brandId}/logo`, {
+  form.append(fieldName, file);
+  const res = await fetch(BASE + url, {
     method: 'POST',
     headers: token ? { Authorization: `Bearer ${token}` } : {},
     body: form,
@@ -45,6 +45,9 @@ async function uploadLogo(brandId, file) {
   return res.json();
 }
 
+const uploadLogo = (brandId, file) => uploadFile(`/brands/${brandId}/logo`, 'logo', file);
+const uploadBlockFile = (brandId, file) => uploadFile(`/brands/${brandId}/upload`, 'file', file);
+
 export const api = {
   login: (email, password) => request('/auth/login', { method: 'POST', body: { email, password } }),
   me: () => request('/auth/me'),
@@ -55,12 +58,20 @@ export const api = {
   updateBrand: (id, data) => request(`/brands/${id}`, { method: 'PUT', body: data }),
   deleteBrand: (id) => request(`/brands/${id}`, { method: 'DELETE' }),
   uploadLogo,
+  uploadBlockFile,
 
-  addItem: (brandId, kind, data) => request(`/brands/${brandId}/${kind}`, { method: 'POST', body: data }),
-  updateItem: (brandId, kind, itemId, data) =>
-    request(`/brands/${brandId}/${kind}/${itemId}`, { method: 'PUT', body: data }),
-  deleteItem: (brandId, kind, itemId) =>
-    request(`/brands/${brandId}/${kind}/${itemId}`, { method: 'DELETE' }),
+  createSection: (brandId, data) => request(`/brands/${brandId}/sections`, { method: 'POST', body: data }),
+  updateSection: (brandId, sectionId, data) =>
+    request(`/brands/${brandId}/sections/${sectionId}`, { method: 'PUT', body: data }),
+  deleteSection: (brandId, sectionId) =>
+    request(`/brands/${brandId}/sections/${sectionId}`, { method: 'DELETE' }),
+
+  createBlock: (brandId, sectionId, data) =>
+    request(`/brands/${brandId}/sections/${sectionId}/blocks`, { method: 'POST', body: data }),
+  updateBlock: (brandId, sectionId, blockId, data) =>
+    request(`/brands/${brandId}/sections/${sectionId}/blocks/${blockId}`, { method: 'PUT', body: data }),
+  deleteBlock: (brandId, sectionId, blockId) =>
+    request(`/brands/${brandId}/sections/${sectionId}/blocks/${blockId}`, { method: 'DELETE' }),
 
   listUsers: () => request('/users'),
   createUser: (data) => request('/users', { method: 'POST', body: data }),

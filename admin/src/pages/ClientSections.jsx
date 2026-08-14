@@ -3,16 +3,82 @@ import { Link, useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
-const BLOCK_TYPES = [
-  { key: 'imagem', label: 'Imagem', icon: '🖼️' },
-  { key: 'imglink', label: 'Img+Link', icon: '📎' },
-  { key: 'video', label: 'Vídeo', icon: '🎬' },
-  { key: 'fonte', label: 'Fonte', icon: '🔤' },
-  { key: 'cor', label: 'Cor', icon: '🎨' },
-  { key: 'pdf', label: 'PDF', icon: '📄' },
-  { key: 'link', label: 'Link', icon: '🔗' },
-  { key: 'codigo', label: 'Código', icon: '💻' },
-];
+const GRID_TYPES = ['image_download', 'video', 'font_card', 'color_palette'];
+
+const BLOCK_TYPE_META = {
+  imagem: {
+    blockType: 'image_download', label: 'Imagem', icon: '🖼️',
+    fields: [
+      { key: 'title', label: 'Título' },
+      { key: 'file_url', label: 'URL da imagem', upload: true },
+    ],
+  },
+  imglink: {
+    blockType: 'image_download', label: 'Img+Link', icon: '📎',
+    fields: [
+      { key: 'title', label: 'Título' },
+      { key: 'file_url', label: 'URL da imagem', upload: true },
+      { key: 'external_url', label: 'Link' },
+    ],
+  },
+  video: {
+    blockType: 'video', label: 'Vídeo', icon: '🎬',
+    fields: [
+      { key: 'title', label: 'Título' },
+      { key: 'file_url', label: 'Arquivo de vídeo', upload: true },
+      { key: 'external_url', label: 'ou link (YouTube/Vimeo)' },
+    ],
+  },
+  fonte: {
+    blockType: 'font_card', label: 'Fonte', icon: '🔤',
+    fields: [
+      { key: 'title', label: 'Nome da fonte' },
+      { key: 'font_file_url', label: 'Arquivo da fonte', upload: true },
+    ],
+  },
+  cor: {
+    blockType: 'color_palette', label: 'Cor', icon: '🎨',
+    fields: [
+      { key: 'title', label: 'Nome da cor' },
+      { key: 'color_hex', label: 'Hex' },
+      { key: 'color_rgb', label: 'RGB' },
+      { key: 'color_cmyk', label: 'CMYK' },
+      { key: 'color_pantone', label: 'Pantone' },
+    ],
+  },
+  pdf: {
+    blockType: 'pdf_viewer', label: 'PDF', icon: '📄',
+    fields: [
+      { key: 'title', label: 'Título' },
+      { key: 'external_url', label: 'URL de preview (Drive /preview)' },
+    ],
+  },
+  link: {
+    blockType: 'link_item', label: 'Link', icon: '🔗',
+    fields: [
+      { key: 'title', label: 'Título' },
+      { key: 'external_url', label: 'URL' },
+    ],
+  },
+  codigo: {
+    blockType: 'code_snippet', label: 'Código', icon: '💻',
+    fields: [
+      { key: 'title', label: 'Título' },
+      { key: 'code_language', label: 'Linguagem' },
+      { key: 'code_content', label: 'Código', textarea: true },
+    ],
+  },
+};
+
+const BLOCK_TYPE_TO_PICKER = {
+  image_download: 'imglink',
+  video: 'video',
+  font_card: 'fonte',
+  color_palette: 'cor',
+  pdf_viewer: 'pdf',
+  link_item: 'link',
+  code_snippet: 'codigo',
+};
 
 export default function ClientSections() {
   const { id } = useParams();
@@ -20,7 +86,6 @@ export default function ClientSections() {
   const canWrite = user.role === 'admin' || user.role === 'editor';
   const [brand, setBrand] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [open, setOpen] = useState({ logos: true, fontes: false, brandguide: false, cores: false });
 
   function load() {
     setLoading(true);
@@ -30,8 +95,24 @@ export default function ClientSections() {
 
   if (loading || !brand) return <p className="loading">Carregando…</p>;
 
-  function toggle(key) {
-    setOpen((o) => ({ ...o, [key]: !o[key] }));
+  async function handleNewSection() {
+    const title = prompt('Nome da nova seção (ex: Vídeos, Papel de Parede, Assets Extras...)');
+    if (!title) return;
+    const type =
+      title
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '') || 'custom';
+    await api.createSection(brand.id, { title, type, sort_order: brand.sections.length });
+    load();
+  }
+
+  async function handleDeleteSection(section) {
+    if (!confirm(`Excluir a seção "${section.title}" e todos os seus blocos? Essa ação não pode ser desfeita.`)) return;
+    await api.deleteSection(brand.id, section.id);
+    load();
   }
 
   return (
@@ -54,70 +135,33 @@ export default function ClientSections() {
             🔗 Ver Página
           </a>
           {canWrite && (
-            <Link className="icon-btn icon-btn--purple" to={`/brands/${brand.id}`}>
-              ✎ Editar Cliente
-            </Link>
+            <>
+              <Link className="icon-btn" to={`/brands/${brand.id}`}>
+                ✎ Editar Cliente
+              </Link>
+              <button className="btn" type="button" onClick={handleNewSection}>
+                + Nova Seção
+              </button>
+            </>
           )}
         </div>
       </div>
 
-      <AccordionSection
-        title="Logos"
-        countLabel={`${brand.logos.length} blocos`}
-        open={open.logos}
-        onToggle={() => toggle('logos')}
-      >
-        <LogosSection brand={brand} canWrite={canWrite} onChange={load} />
-      </AccordionSection>
-
-      <AccordionSection
-        title="Fontes"
-        countLabel={`${brand.fonts.length} blocos`}
-        open={open.fontes}
-        onToggle={() => toggle('fontes')}
-      >
-        <FontesSection brand={brand} canWrite={canWrite} onChange={load} />
-      </AccordionSection>
-
-      <AccordionSection
-        title="Brandguide"
-        countLabel={brand.brandguide_url ? '1 bloco' : '0 blocos'}
-        open={open.brandguide}
-        onToggle={() => toggle('brandguide')}
-      >
-        <BrandguideSection brand={brand} canWrite={canWrite} onChange={load} />
-      </AccordionSection>
-
-      <AccordionSection
-        title="Cores"
-        countLabel={`${brand.colors.length} blocos`}
-        open={open.cores}
-        onToggle={() => toggle('cores')}
-      >
-        <ColoresSection brand={brand} canWrite={canWrite} onChange={load} />
-      </AccordionSection>
+      {brand.sections.map((section) => (
+        <SectionCard
+          key={section.id}
+          brand={brand}
+          section={section}
+          canWrite={canWrite}
+          onChange={load}
+          onDeleteSection={handleDeleteSection}
+        />
+      ))}
     </div>
   );
 }
 
-function AccordionSection({ title, countLabel, open, onToggle, children }) {
-  return (
-    <div className="accordion">
-      <div className="accordion__head" onClick={onToggle}>
-        <div className="accordion__title-group">
-          <span className={`accordion__chevron ${open ? 'open' : ''}`}>⌄</span>
-          <div>
-            <div className="accordion__title">{title}</div>
-            <div className="accordion__count">{countLabel}</div>
-          </div>
-        </div>
-      </div>
-      {open && <div className="accordion__body">{children}</div>}
-    </div>
-  );
-}
-
-function NovoBlocoModal({ enabledTypes, onSelect, onClose }) {
+function NovoBlocoModal({ onSelect, onClose }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -128,421 +172,257 @@ function NovoBlocoModal({ enabledTypes, onSelect, onClose }) {
           </button>
         </div>
         <div className="modal__grid">
-          {BLOCK_TYPES.map((t) => {
-            const enabled = enabledTypes.includes(t.key);
-            return (
-              <button
-                key={t.key}
-                type="button"
-                className={`modal__option ${enabled ? '' : 'disabled'}`}
-                disabled={!enabled}
-                onClick={() => onSelect(t.key)}
-                title={enabled ? '' : 'Em breve'}
-              >
-                <span className="modal__option-icon">{t.icon}</span>
-                <span className="modal__option-label">{t.label}</span>
-              </button>
-            );
-          })}
+          {Object.entries(BLOCK_TYPE_META).map(([key, meta]) => (
+            <button key={key} type="button" className="modal__option" onClick={() => onSelect(key)}>
+              <span className="modal__option-icon">{meta.icon}</span>
+              <span className="modal__option-label">{meta.label}</span>
+            </button>
+          ))}
         </div>
       </div>
     </div>
   );
 }
 
-function LogosSection({ brand, canWrite, onChange }) {
-  const [name, setName] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
-  const [showModal, setShowModal] = useState(false);
-  const [showForm, setShowForm] = useState(false);
+function BlockPreview({ block }) {
+  switch (block.block_type) {
+    case 'image_download':
+      return (
+        <div className="block-tile">
+          <div className="block-tile__preview">
+            {block.file_url ? <img src={block.file_url} alt={block.title} /> : <span>🖼</span>}
+          </div>
+          <div className="block-tile__caption">
+            {block.external_url ? (
+              <a href={block.external_url} target="_blank" rel="noopener noreferrer">
+                {block.title || 'sem título'}
+              </a>
+            ) : (
+              block.title || 'sem título'
+            )}
+          </div>
+        </div>
+      );
+    case 'video':
+      return (
+        <div className="block-tile">
+          <div className="block-tile__preview">
+            {block.file_url ? (
+              <video src={block.file_url} controls style={{ maxWidth: '100%', maxHeight: '100%' }} />
+            ) : block.external_url ? (
+              <a href={block.external_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 24 }}>
+                🎬
+              </a>
+            ) : (
+              <span>🎬</span>
+            )}
+          </div>
+          <div className="block-tile__caption">{block.title || 'sem título'}</div>
+        </div>
+      );
+    case 'font_card':
+      return (
+        <div className="font-tile">
+          <div className="font-tile__name">{block.title || block.font_name || 'sem nome'}</div>
+          <div className="font-tile__preview">Aa</div>
+        </div>
+      );
+    case 'color_palette':
+      return (
+        <div className="color-tile" style={{ borderColor: block.color_hex || '#444' }}>
+          <div className="color-tile__swatch" style={{ backgroundColor: block.color_hex || '#222' }} />
+          <div className="color-tile__meta">
+            {block.title && <div>{block.title}</div>}
+            {block.color_hex && <div>HEX {block.color_hex}</div>}
+            {block.color_rgb && <div>RGB {block.color_rgb}</div>}
+            {block.color_cmyk && <div>CMYK {block.color_cmyk}</div>}
+            {block.color_pantone && <div>Pantone {block.color_pantone}</div>}
+          </div>
+        </div>
+      );
+    case 'code_snippet':
+      return (
+        <div>
+          <pre className="code-block">
+            <code>{block.code_content}</code>
+          </pre>
+          <div className="block-tile__caption">
+            {block.title} {block.code_language ? `(${block.code_language})` : ''}
+          </div>
+        </div>
+      );
+    case 'pdf_viewer':
+      return <iframe src={block.external_url} className="pdf-frame" title={block.title || 'PDF'} allow="autoplay" />;
+    case 'link_item':
+    default:
+      return (
+        <div className="link-row">
+          <a href={block.external_url} target="_blank" rel="noopener noreferrer">
+            {block.title || block.external_url}
+          </a>
+        </div>
+      );
+  }
+}
 
-  function handleSelectType(type) {
-    if (type === 'imagem') {
-      setShowModal(false);
-      setShowForm(true);
-    } else if (type === 'link') {
-      setShowModal(false);
-      handleEditDriveLink();
+function SectionCard({ brand, section, canWrite, onChange, onDeleteSection }) {
+  const [open, setOpen] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [formKey, setFormKey] = useState(null);
+  const [draft, setDraft] = useState({});
+  const [editingBlock, setEditingBlock] = useState(null);
+  const [uploading, setUploading] = useState(false);
+
+  const gridBlocks = section.blocks.filter((b) => GRID_TYPES.includes(b.block_type));
+  const flowBlocks = section.blocks.filter((b) => !GRID_TYPES.includes(b.block_type));
+
+  function openForm(key) {
+    setShowModal(false);
+    setFormKey(key);
+    setDraft({});
+    setEditingBlock(null);
+  }
+
+  function openEdit(block) {
+    const key = BLOCK_TYPE_TO_PICKER[block.block_type] || 'link';
+    setFormKey(key);
+    setDraft({ ...block });
+    setEditingBlock(block);
+  }
+
+  function closeForm() {
+    setFormKey(null);
+    setDraft({});
+    setEditingBlock(null);
+  }
+
+  async function handleUpload(field, file) {
+    setUploading(true);
+    try {
+      const { url } = await api.uploadBlockFile(brand.id, file);
+      setDraft((d) => ({ ...d, [field]: url }));
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setUploading(false);
     }
   }
 
-  async function handleEditDriveLink() {
-    const url = prompt('Link do Drive com todos os logos', brand.drive_logos_url || '');
-    if (url === null) return;
-    await api.updateBrand(brand.id, { ...brand, drive_logos_url: url });
-    onChange();
-  }
-
-  async function handleAdd(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
-    if (!imageUrl) return;
-    await api.addItem(brand.id, 'logos', { name, image_url: imageUrl, hex: '' });
-    setName('');
-    setImageUrl('');
-    setShowForm(false);
+    const meta = BLOCK_TYPE_META[formKey];
+    const payload = { block_type: meta.blockType, ...draft };
+    if (formKey === 'fonte' && draft.title) payload.font_name = draft.title;
+    if (editingBlock) {
+      await api.updateBlock(brand.id, section.id, editingBlock.id, payload);
+    } else {
+      payload.sort_order = section.blocks.length;
+      await api.createBlock(brand.id, section.id, payload);
+    }
+    closeForm();
     onChange();
   }
 
-  async function handleEdit(item) {
-    const newName = prompt('Nome do logo', item.name || '');
-    if (newName === null) return;
-    const newUrl = prompt('URL da imagem', item.image_url || '');
-    if (newUrl === null) return;
-    await api.updateItem(brand.id, 'logos', item.id, { ...item, name: newName, image_url: newUrl });
-    onChange();
-  }
-
-  async function handleDelete(itemId) {
-    if (!confirm('Remover este logo?')) return;
-    await api.deleteItem(brand.id, 'logos', itemId);
+  async function handleDeleteBlock(blockId) {
+    if (!confirm('Remover este bloco?')) return;
+    await api.deleteBlock(brand.id, section.id, blockId);
     onChange();
   }
 
   return (
-    <div>
-      {brand.logos.length ? (
-        <div className="block-grid">
-          {brand.logos.map((l) => (
-            <div key={l.id} className="block-tile">
-              <div className="block-tile__preview">
-                {l.image_url ? <img src={l.image_url} alt={l.name} /> : <span>🖼</span>}
+    <div className="accordion">
+      <div className="accordion__head" onClick={() => setOpen((o) => !o)}>
+        <div className="accordion__title-group">
+          <span className={`accordion__chevron ${open ? 'open' : ''}`}>⌄</span>
+          <div>
+            <div className="accordion__title">{section.title}</div>
+            <div className="accordion__count">{section.blocks.length} blocos</div>
+          </div>
+        </div>
+        {canWrite && (
+          <div className="accordion__actions" onClick={(e) => e.stopPropagation()}>
+            <button className="icon-btn" onClick={() => setShowModal(true)}>
+              + Bloco
+            </button>
+            <button className="icon-btn icon-btn--danger" onClick={() => onDeleteSection(section)} title="Excluir seção">
+              🗑
+            </button>
+          </div>
+        )}
+      </div>
+      {open && (
+        <div className="accordion__body">
+          {!!gridBlocks.length && (
+            <div className="block-grid">
+              {gridBlocks.map((b) => (
+                <BlockPreview key={b.id} block={b} />
+              ))}
+            </div>
+          )}
+          {flowBlocks.map((b) => (
+            <BlockPreview key={b.id} block={b} />
+          ))}
+          {!section.blocks.length && <p className="empty-block">Nenhum bloco cadastrado ainda.</p>}
+
+          {canWrite && formKey && (
+            <form onSubmit={handleSubmit} className="block-form">
+              {BLOCK_TYPE_META[formKey].fields.map((f) => (
+                <div key={f.key} className="block-form__row">
+                  {f.textarea ? (
+                    <textarea
+                      placeholder={f.label}
+                      value={draft[f.key] || ''}
+                      onChange={(e) => setDraft((d) => ({ ...d, [f.key]: e.target.value }))}
+                    />
+                  ) : (
+                    <input
+                      placeholder={f.label}
+                      value={draft[f.key] || ''}
+                      onChange={(e) => setDraft((d) => ({ ...d, [f.key]: e.target.value }))}
+                    />
+                  )}
+                  {f.upload && (
+                    <label className="icon-btn block-form__upload">
+                      {uploading ? '…' : '⬆ Upload'}
+                      <input
+                        type="file"
+                        hidden
+                        onChange={(e) => e.target.files[0] && handleUpload(f.key, e.target.files[0])}
+                      />
+                    </label>
+                  )}
+                </div>
+              ))}
+              <div className="block-form__actions">
+                <button type="submit">Salvar</button>
+                <button type="button" onClick={closeForm}>
+                  Cancelar
+                </button>
               </div>
-              <div className="block-tile__caption">{l.name || 'sem nome'}</div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="empty-block">Nenhum logo cadastrado ainda.</p>
-      )}
-
-      {brand.drive_logos_url && (
-        <div className="link-row">
-          <a href={brand.drive_logos_url} target="_blank" rel="noopener noreferrer">
-            Todos os logos de {brand.name} (Drive)
-          </a>
-        </div>
-      )}
-
-      {canWrite && (
-        <>
-          {showForm ? (
-            <form onSubmit={handleAdd} className="subform">
-              <input placeholder="Nome do logo" value={name} onChange={(e) => setName(e.target.value)} />
-              <input placeholder="URL da imagem" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
-              <button type="submit">Salvar</button>
-              <button type="button" onClick={() => setShowForm(false)}>
-                Cancelar
-              </button>
             </form>
-          ) : (
-            <button className="btn" type="button" onClick={() => setShowModal(true)}>
-              + Bloco
-            </button>
           )}
-          {showModal && (
-            <NovoBlocoModal enabledTypes={['imagem', 'link']} onSelect={handleSelectType} onClose={() => setShowModal(false)} />
-          )}
-          {!!brand.logos.length && (
+
+          {showModal && <NovoBlocoModal onSelect={openForm} onClose={() => setShowModal(false)} />}
+
+          {!!section.blocks.length && canWrite && (
             <div className="manage-list">
               <p className="manage-list__title">Gerenciar blocos:</p>
-              {brand.logos.map((l) => (
-                <div key={l.id} className="manage-item">
-                  <span className="manage-item__name">{l.name || 'sem nome'}</span>
+              {section.blocks.map((b) => (
+                <div key={b.id} className="manage-item">
+                  <span className="manage-item__name">
+                    {b.title || b.font_name || b.color_hex || b.external_url || 'bloco'}
+                  </span>
                   <span className="manage-item__actions">
-                    <button onClick={() => handleEdit(l)} title="Editar bloco">
+                    <button onClick={() => openEdit(b)} title="Editar bloco">
                       ✎
                     </button>
-                    <button onClick={() => handleDelete(l.id)} title="Excluir bloco" className="danger">
+                    <button onClick={() => handleDeleteBlock(b.id)} title="Excluir bloco" className="danger">
                       🗑
                     </button>
                   </span>
                 </div>
               ))}
             </div>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
-function FontesSection({ brand, canWrite, onChange }) {
-  const [name, setName] = useState('');
-  const [showModal, setShowModal] = useState(false);
-  const [showForm, setShowForm] = useState(false);
-
-  function handleSelectType(type) {
-    if (type === 'fonte') {
-      setShowModal(false);
-      setShowForm(true);
-    } else if (type === 'link') {
-      setShowModal(false);
-      handleEditDriveLink();
-    }
-  }
-
-  async function handleEditDriveLink() {
-    const url = prompt('Link do Drive com todas as fontes', brand.drive_fonts_url || '');
-    if (url === null) return;
-    await api.updateBrand(brand.id, { ...brand, drive_fonts_url: url });
-    onChange();
-  }
-
-  async function handleAdd(e) {
-    e.preventDefault();
-    if (!name) return;
-    await api.addItem(brand.id, 'fonts', { name });
-    setName('');
-    setShowForm(false);
-    onChange();
-  }
-
-  async function handleEdit(item) {
-    const newName = prompt('Nome da fonte', item.name || '');
-    if (newName === null) return;
-    await api.updateItem(brand.id, 'fonts', item.id, { name: newName });
-    onChange();
-  }
-
-  async function handleDelete(itemId) {
-    if (!confirm('Remover esta fonte?')) return;
-    await api.deleteItem(brand.id, 'fonts', itemId);
-    onChange();
-  }
-
-  return (
-    <div>
-      {brand.fonts.length ? (
-        <div className="block-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}>
-          {brand.fonts.map((f) => (
-            <div key={f.id} className="font-tile">
-              <div className="font-tile__name">{f.name}</div>
-              <div className="font-tile__preview">Aa</div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="empty-block">Nenhuma fonte cadastrada ainda.</p>
-      )}
-
-      {brand.drive_fonts_url && (
-        <div className="link-row">
-          <a href={brand.drive_fonts_url} target="_blank" rel="noopener noreferrer">
-            Todas as fontes de {brand.name} (Drive)
-          </a>
-        </div>
-      )}
-
-      {canWrite && (
-        <>
-          {showForm ? (
-            <form onSubmit={handleAdd} className="subform">
-              <input placeholder="Nome da fonte" value={name} onChange={(e) => setName(e.target.value)} />
-              <button type="submit">Salvar</button>
-              <button type="button" onClick={() => setShowForm(false)}>
-                Cancelar
-              </button>
-            </form>
-          ) : (
-            <button className="btn" type="button" onClick={() => setShowModal(true)}>
-              + Bloco
-            </button>
-          )}
-          {showModal && (
-            <NovoBlocoModal enabledTypes={['fonte', 'link']} onSelect={handleSelectType} onClose={() => setShowModal(false)} />
-          )}
-          {!!brand.fonts.length && (
-            <div className="manage-list">
-              <p className="manage-list__title">Gerenciar blocos:</p>
-              {brand.fonts.map((f) => (
-                <div key={f.id} className="manage-item">
-                  <span className="manage-item__name">{f.name}</span>
-                  <span className="manage-item__actions">
-                    <button onClick={() => handleEdit(f)} title="Editar bloco">
-                      ✎
-                    </button>
-                    <button onClick={() => handleDelete(f.id)} title="Excluir bloco" className="danger">
-                      🗑
-                    </button>
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
-function ColoresSection({ brand, canWrite, onChange }) {
-  const [draft, setDraft] = useState({ hex: '', rgb: '', cmyk: '', pantone: '' });
-  const [showModal, setShowModal] = useState(false);
-  const [showForm, setShowForm] = useState(false);
-
-  function handleSelectType(type) {
-    if (type === 'cor') {
-      setShowModal(false);
-      setShowForm(true);
-    } else if (type === 'link') {
-      setShowModal(false);
-      handleEditDriveLink();
-    }
-  }
-
-  async function handleEditDriveLink() {
-    const url = prompt('Link do Drive com as cores/swatches', brand.drive_colors_url || '');
-    if (url === null) return;
-    await api.updateBrand(brand.id, { ...brand, drive_colors_url: url });
-    onChange();
-  }
-
-  async function handleAdd(e) {
-    e.preventDefault();
-    if (!draft.hex) return;
-    await api.addItem(brand.id, 'colors', draft);
-    setDraft({ hex: '', rgb: '', cmyk: '', pantone: '' });
-    setShowForm(false);
-    onChange();
-  }
-
-  async function handleEdit(item) {
-    const hex = prompt('Hex', item.hex || '');
-    if (hex === null) return;
-    const rgb = prompt('RGB', item.rgb || '');
-    if (rgb === null) return;
-    const cmyk = prompt('CMYK', item.cmyk || '');
-    if (cmyk === null) return;
-    const pantone = prompt('Pantone', item.pantone || '');
-    if (pantone === null) return;
-    await api.updateItem(brand.id, 'colors', item.id, { hex, rgb, cmyk, pantone });
-    onChange();
-  }
-
-  async function handleDelete(itemId) {
-    if (!confirm('Remover esta cor?')) return;
-    await api.deleteItem(brand.id, 'colors', itemId);
-    onChange();
-  }
-
-  return (
-    <div>
-      {brand.colors.length ? (
-        <div className="block-grid">
-          {brand.colors.map((c) => (
-            <div key={c.id} className="color-tile" style={{ borderColor: c.hex || '#444' }}>
-              <div className="color-tile__swatch" style={{ backgroundColor: c.hex || '#222' }} />
-              <div className="color-tile__meta">
-                <div>HEX {c.hex}</div>
-                {c.rgb && <div>RGB {c.rgb}</div>}
-                {c.cmyk && <div>CMYK {c.cmyk}</div>}
-                {c.pantone && <div>Pantone {c.pantone}</div>}
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="empty-block">Nenhuma cor cadastrada ainda.</p>
-      )}
-
-      {brand.drive_colors_url && (
-        <div className="link-row">
-          <a href={brand.drive_colors_url} target="_blank" rel="noopener noreferrer">
-            {brand.name} (Swatch Color)
-          </a>
-        </div>
-      )}
-
-      {canWrite && (
-        <>
-          {showForm ? (
-            <form onSubmit={handleAdd} className="subform">
-              <input placeholder="Hex" value={draft.hex} onChange={(e) => setDraft((d) => ({ ...d, hex: e.target.value }))} />
-              <input placeholder="RGB" value={draft.rgb} onChange={(e) => setDraft((d) => ({ ...d, rgb: e.target.value }))} />
-              <input
-                placeholder="CMYK"
-                value={draft.cmyk}
-                onChange={(e) => setDraft((d) => ({ ...d, cmyk: e.target.value }))}
-              />
-              <input
-                placeholder="Pantone"
-                value={draft.pantone}
-                onChange={(e) => setDraft((d) => ({ ...d, pantone: e.target.value }))}
-              />
-              <button type="submit">Salvar</button>
-              <button type="button" onClick={() => setShowForm(false)}>
-                Cancelar
-              </button>
-            </form>
-          ) : (
-            <button className="btn" type="button" onClick={() => setShowModal(true)}>
-              + Bloco
-            </button>
-          )}
-          {showModal && (
-            <NovoBlocoModal enabledTypes={['cor', 'link']} onSelect={handleSelectType} onClose={() => setShowModal(false)} />
-          )}
-          {!!brand.colors.length && (
-            <div className="manage-list">
-              <p className="manage-list__title">Gerenciar blocos:</p>
-              {brand.colors.map((c) => (
-                <div key={c.id} className="manage-item">
-                  <span className="manage-item__name">{c.pantone || c.hex}</span>
-                  <span className="manage-item__actions">
-                    <button onClick={() => handleEdit(c)} title="Editar bloco">
-                      ✎
-                    </button>
-                    <button onClick={() => handleDelete(c.id)} title="Excluir bloco" className="danger">
-                      🗑
-                    </button>
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
-function BrandguideSection({ brand, canWrite, onChange }) {
-  const [showModal, setShowModal] = useState(false);
-
-  function handleSelectType(type) {
-    if (type === 'pdf') {
-      setShowModal(false);
-      handleEdit();
-    }
-  }
-
-  async function handleEdit() {
-    const url = prompt('URL de preview do brandguide (ex: link do Drive em modo /preview)', brand.brandguide_url || '');
-    if (url === null) return;
-    await api.updateBrand(brand.id, { ...brand, brandguide_url: url });
-    onChange();
-  }
-
-  return (
-    <div>
-      {brand.brandguide_url ? (
-        <iframe src={brand.brandguide_url} className="pdf-frame" title="Brandguide" allow="autoplay" />
-      ) : (
-        <p className="empty-block">Nenhum brandguide cadastrado ainda.</p>
-      )}
-      {canWrite && (
-        <div style={{ marginTop: 12 }}>
-          {brand.brandguide_url ? (
-            <button className="icon-btn" onClick={handleEdit}>
-              ✎ Editar link do brandguide
-            </button>
-          ) : (
-            <button className="btn" type="button" onClick={() => setShowModal(true)}>
-              + Bloco
-            </button>
-          )}
-          {showModal && (
-            <NovoBlocoModal enabledTypes={['pdf']} onSelect={handleSelectType} onClose={() => setShowModal(false)} />
           )}
         </div>
       )}
