@@ -6,6 +6,8 @@ import { fileURLToPath } from 'url';
 import authRoutes from './routes/auth.js';
 import brandRoutes from './routes/brands.js';
 import userRoutes from './routes/users.js';
+import publicRoutes from './routes/public.js';
+import siteContentRoutes from './routes/siteContent.js';
 import { seedAdmin } from './seed.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -16,6 +18,8 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/brands', brandRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/public', publicRoutes);
+app.use('/api/site-content', siteContentRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);

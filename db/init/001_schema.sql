@@ -2,6 +2,10 @@
 -- Executado automaticamente pelo container MySQL na primeira inicializacao
 -- (montado em /docker-entrypoint-initdb.d)
 
+-- Forca a sessao de import a usar utf8mb4, independente do charset padrao
+-- do cliente mysql que roda este script (evita acentos corrompidos no seed)
+SET NAMES utf8mb4;
+
 CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(120) NOT NULL,
@@ -10,6 +14,21 @@ CREATE TABLE IF NOT EXISTS users (
   role ENUM('admin','editor','viewer') NOT NULL DEFAULT 'viewer',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Conteudo editavel da home do site publico (linha unica, id sempre 1)
+CREATE TABLE IF NOT EXISTS site_content (
+  id INT PRIMARY KEY DEFAULT 1,
+  title VARCHAR(160) NOT NULL DEFAULT '',
+  subtitle VARCHAR(160) NOT NULL DEFAULT '',
+  description TEXT,
+  logo_url VARCHAR(500),
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+INSERT INTO site_content (id, title, subtitle, description, logo_url) VALUES
+  (1, 'O Hub de Arquivos da VX', 'Assets Source',
+   'Templates, logos, cores, fontes e tudo o que seu cliente precisa, em um só lugar, organizado e pronto para uso.',
+   NULL);
 
 CREATE TABLE IF NOT EXISTS brands (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -75,37 +94,37 @@ INSERT INTO brands
   (slug,name,display_html,brand_group,filter_key,description,
    grad_a,grad_b,grad_c,grad_d,grad_base,grad_glow,grad_pale,logo_url,sort_order)
 VALUES
-('canal-brasil','Canal Brasil','Canal<br>Brasil','Nacional','nacional','Canal de entretenimento Canal Brasil',
+('canal-brasil','Canal Brasil','Canal<br>Brasil','Entretenimento','entretenimento','Canal de entretenimento Canal Brasil',
   '#FFDC00','#FF3228','#00E1BE','#FF8C50','#151007','rgba(255,220,0,.45)',FALSE,
   'https://lxrnatulhlmxthgribwl.supabase.co/storage/v1/object/public/files/51cd42a2-ef06-4db4-877f-8a545f94aa47/logo.png',1),
-('espn','ESPN','ESPN','Esportes','esportes','Canal de esportes ESPN',
+('espn','ESPN','ESPN','Entretenimento','entretenimento','Canal de esportes ESPN',
   '#FF2B2B','#B00018','#3A0008','#FF6A5A','#170206','rgba(255,43,43,.42)',FALSE,
   'https://lxrnatulhlmxthgribwl.supabase.co/storage/v1/object/public/files/1962d0a2-7ff0-4337-829c-7600e5a409e8/logo.png',2),
-('nbcu-hub','NBCU Hub','NBCU<br>Hub','NBCUniversal','nbcu','Hub de marcas NBCUniversal International Networks & Direct-to-Consumer',
+('nbcu-hub','NBCU Hub','NBCU<br>Hub','Entretenimento','entretenimento','Hub de marcas NBCUniversal International Networks & Direct-to-Consumer',
   '#2ED9FF','#6C4BFF','#0B2A6B','#00E1BE','#07103a','rgba(108,75,255,.45)',FALSE,
   'https://lxrnatulhlmxthgribwl.supabase.co/storage/v1/object/public/files/clients/5c5cf544-57b2-4f70-956c-a2b429def16a/logo.png',3),
-('prio','Prio','Prio','Outros','outros','Arquivos prio',
+('prio','Prio','Prio','PRIO','prio','Arquivos prio',
   NULL,NULL,NULL,NULL,NULL,NULL,FALSE,
   'https://lxrnatulhlmxthgribwl.supabase.co/storage/v1/object/public/files/clients/18e03608-8933-427e-9e69-b5ad25bbec92/logo.png',4),
-('sony-channel','Sony Channel','Sony<br>Channel','Sony','sony','Canal de entretenimento Sony Channel',
+('sony-channel','Sony Channel','Sony<br>Channel','Entretenimento','entretenimento','Canal de entretenimento Sony Channel',
   '#FF9A2E','#FF2D6F','#7A1FA8','#FFD84D','#2a0a1e','rgba(255,45,111,.45)',FALSE,
   'https://lxrnatulhlmxthgribwl.supabase.co/storage/v1/object/public/files/a33ae4bb-0bcd-4cc2-b9b2-87dc7fa63b0b/logo.png',5),
-('sony-home-entertainment','Sony Home Entertainment','Sony Home<br>Entertainment','Sony','sony','Catálogo de home entertainment da Sony Pictures',
+('sony-home-entertainment','Sony Home Entertainment','Sony Home<br>Entertainment','Entretenimento','entretenimento','Catálogo de home entertainment da Sony Pictures',
   '#FFFFFF','#D8DEE3','#9AA6AE','#FFFFFF','#cfd6db','rgba(216,222,227,.5)',TRUE,
   'https://lxrnatulhlmxthgribwl.supabase.co/storage/v1/object/public/files/clients/c1520297-c704-4d49-a6e5-0ae6a6ecf5fd/logo.png',6),
-('sony-one','Sony One','Sony<br>One','Sony','sony','Plataforma Sony One',
+('sony-one','Sony One','Sony<br>One','Entretenimento','entretenimento','Plataforma Sony One',
   '#3E7BFF','#A63BFF','#FF3D9A','#22D3EE','#130a3a','rgba(166,59,255,.45)',FALSE,
   'https://lxrnatulhlmxthgribwl.supabase.co/storage/v1/object/public/files/97e935d8-bfb3-4c2b-9a4d-2c81c789f7e6/logo.png',7),
-('studio-universal','Studio Universal','Studio<br>Universal','NBCUniversal','nbcu','Canal de cinema Studio Universal',
+('studio-universal','Studio Universal','Studio<br>Universal','Entretenimento','entretenimento','Canal de cinema Studio Universal',
   '#16E0B0','#0FA3C9','#06463F','#9DF25A','#04241f','rgba(22,224,176,.44)',FALSE,
   'https://lxrnatulhlmxthgribwl.supabase.co/storage/v1/object/public/files/6cfa09b4-005d-451a-ab67-e5c9b1a1307c/logo.png',8),
-('universal-tv','Universal TV','Universal<br>TV','NBCUniversal','nbcu','Canal de séries Universal TV',
+('universal-tv','Universal TV','Universal<br>TV','Entretenimento','entretenimento','Canal de séries Universal TV',
   '#FF5A3C','#FF2D8A','#7A1250','#FFB03A','#2a0616','rgba(255,45,138,.44)',FALSE,
   'https://lxrnatulhlmxthgribwl.supabase.co/storage/v1/object/public/files/3551003f-5eac-4fc7-b5e4-3fb8d4226315/logo.png',9),
-('usa','USA','USA','NBCUniversal','nbcu','Canal USA Network',
+('usa','USA','USA','Entretenimento','entretenimento','Canal USA Network',
   '#FF3B30','#1E4FD8','#0A0A12','#FF7A5A','#0a0a12','rgba(255,59,48,.42)',FALSE,
   'https://lxrnatulhlmxthgribwl.supabase.co/storage/v1/object/public/files/clients/5b8ae1e7-e770-4518-bf3a-9eab2024c863/logo.png',10),
-('vx','VX','VX','Agência','vx','Identidade da VX Comunicação',
+('vx','VX','VX','Entretenimento','entretenimento','Identidade da VX Comunicação',
   '#C4FF4D','#18E0C8','#05463F','#E6FF9A','#07261f','rgba(196,255,77,.45)',FALSE,
   'https://lxrnatulhlmxthgribwl.supabase.co/storage/v1/object/public/files/clients/e11f697a-f76b-4fff-be48-0053557482f1/logo.png',11);
 
