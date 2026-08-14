@@ -1,3 +1,7 @@
+@font-face { font-family: "Herokid"; src: url("/fonts/Herokid-Regular.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Herokid"; src: url("/fonts/Herokid-SemiBold.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "Herokid"; src: url("/fonts/Herokid-Bold.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Herokid"; src: url("/fonts/Herokid-ExtraBold.woff2") format("woff2"); font-weight: 800; font-style: normal; font-display: swap; }
 :root {
   --bg: #04160F;
   --bg2: #0A2119;
@@ -17,7 +21,7 @@
   --mint-soft: rgba(127, 245, 196, .16);
   --red: #FF6B6B;
   --red-soft: rgba(255, 107, 107, .12);
-  --font: "Inter Tight", system-ui, -apple-system, sans-serif;
+  --font: "Herokid", system-ui, -apple-system, sans-serif;
 }
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; margin: 0; }
@@ -89,7 +93,7 @@ button { font-family: inherit; }
 .tabs { display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 1px solid var(--line); padding-bottom: 16px; }
 .tab {
   display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 8px;
-  border: 0; background: transparent; color: var(--muted); font-size: 14px; font-weight: 500; cursor: pointer;
+  border: 0; background: transparent; color: var(--muted); font-size: 14px; font-weight: 400; cursor: pointer;
 }
 .tab:hover { color: var(--paper); background: var(--fill-hover); }
 .tab.active { background: var(--accent-grad); color: var(--accent-ink); font-weight: 700; }

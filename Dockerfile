@@ -12,5 +12,6 @@ RUN npm install --omit=dev
 COPY server/src ./src
 COPY --from=admin-build /server/admin-dist ./admin-dist
 COPY index.html styles.css ./public/
+COPY fonts ./public/fonts
 EXPOSE 3000
 CMD ["node", "src/index.js"]
