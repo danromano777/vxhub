@@ -55,6 +55,9 @@ export default function Dashboard() {
         <button className={`tab ${tab === 'secoes' ? 'active' : ''}`} onClick={() => setTab('secoes')}>
           📂 Seções
         </button>
+        <Link className="tab" to="/site-content">
+          📝 Conteúdo do Site
+        </Link>
         {user.role === 'admin' && (
           <Link className="tab" to="/users">
             👤 Usuários

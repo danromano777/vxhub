@@ -47,6 +47,7 @@ async function uploadFile(url, fieldName, file) {
 
 const uploadLogo = (brandId, file) => uploadFile(`/brands/${brandId}/logo`, 'logo', file);
 const uploadBlockFile = (brandId, file) => uploadFile(`/brands/${brandId}/upload`, 'file', file);
+const uploadSiteLogo = (file) => uploadFile('/site-content/upload', 'logo', file);
 
 export const api = {
   login: (email, password) => request('/auth/login', { method: 'POST', body: { email, password } }),
@@ -72,6 +73,10 @@ export const api = {
     request(`/brands/${brandId}/sections/${sectionId}/blocks/${blockId}`, { method: 'PUT', body: data }),
   deleteBlock: (brandId, sectionId, blockId) =>
     request(`/brands/${brandId}/sections/${sectionId}/blocks/${blockId}`, { method: 'DELETE' }),
+
+  getSiteContent: () => request('/site-content'),
+  updateSiteContent: (data) => request('/site-content', { method: 'PUT', body: data }),
+  uploadSiteLogo,
 
   listUsers: () => request('/users'),
   createUser: (data) => request('/users', { method: 'POST', body: data }),
