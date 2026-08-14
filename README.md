@@ -61,6 +61,7 @@ docker compose --profile app up -d --build
 ```
 
 - Sobe o MySQL (com schema e seed de `db/init/001_schema.sql`) e a API/admin buildados em produção.
+- Landing page disponível em `http://localhost:3000/`.
 - Painel admin disponível em `http://localhost:3000/admin` (login com `SEED_ADMIN_EMAIL`/`SEED_ADMIN_PASSWORD`).
 - Para subir só o banco (sem o app): `docker compose up -d` (sem `--profile app`).
 - Para parar: `docker compose down` (adicione `-v` para apagar também os dados do MySQL).

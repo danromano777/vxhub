@@ -27,7 +27,9 @@ app.use('/admin', express.static(adminDist));
 app.get(/^\/admin(\/.*)?$/, (req, res) => {
   res.sendFile(path.join(adminDist, 'index.html'));
 });
-app.get('/', (req, res) => res.redirect('/admin'));
+
+const publicDir = path.join(__dirname, '..', 'public');
+app.use(express.static(publicDir));
 
 const port = process.env.PORT || 3000;
 
