@@ -572,12 +572,12 @@ function renderBrandPage(b){
 
   (b.sections||[]).forEach(function(section){
     var blocks=section.blocks||[];
+    if(!blocks.length) return;
     var gridBlocks=blocks.filter(function(bl){return GRID_TYPES.indexOf(bl.block_type)>=0;});
     var flowBlocks=blocks.filter(function(bl){return GRID_TYPES.indexOf(bl.block_type)<0;});
     html+='<section class="section"><div class="section__head"><h2>'+esc(section.title)+'</h2><span class="count">'+blocks.length+' itens</span></div>';
     if(gridBlocks.length) html+='<div class="mixed-grid">'+gridBlocks.map(renderBlock).join('')+'</div>';
     flowBlocks.forEach(function(bl){ html+=renderBlock(bl); });
-    if(!blocks.length) html+='<div class="empty"><b>Sem itens ainda</b>Assim que os arquivos dessa seção forem publicados, eles aparecem aqui.</div>';
     html+='</section>';
   });
 
