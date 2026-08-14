@@ -26,6 +26,95 @@ function rgbToCmyk(r, g, b) {
   return { c, m, y, k: Math.round(k * 100) };
 }
 
+// Aproximação de PMS Solid Coated. As 10 primeiras entradas são pares
+// hex/Pantone já confirmados manualmente (Canal Brasil); o resto é uma
+// tabela de referência ampla, não-oficial, usada para sugerir a "cor mais
+// próxima" — é só um ponto de partida, sempre revisar antes de imprimir.
+const PANTONE_TABLE = [
+  { code: 'BLACK C', hex: '#000000' },
+  { code: '108 C', hex: '#FFDC00' },
+  { code: '2427 C', hex: '#003C00' },
+  { code: '7554 C', hex: '#3C2D19' },
+  { code: 'BRIGHT RED', hex: '#FF3228' },
+  { code: '325 C', hex: '#00E1BE' },
+  { code: 'White Smoke', hex: '#F8F9F7' },
+  { code: '2144 C', hex: '#005096' },
+  { code: '163 C', hex: '#FF8C50' },
+  { code: 'White', hex: '#FFFFFF' },
+  { code: 'Cool Gray 1 C', hex: '#D9D9D6' },
+  { code: 'Cool Gray 3 C', hex: '#C8C9C7' },
+  { code: 'Cool Gray 5 C', hex: '#B1B3B3' },
+  { code: 'Cool Gray 7 C', hex: '#97999B' },
+  { code: 'Cool Gray 9 C', hex: '#75787B' },
+  { code: 'Cool Gray 11 C', hex: '#53565A' },
+  { code: 'Warm Gray 1 C', hex: '#D7D2CB' },
+  { code: 'Warm Gray 5 C', hex: '#B6ADA5' },
+  { code: 'Warm Gray 9 C', hex: '#97918C' },
+  { code: 'Warm Gray 11 C', hex: '#7A7570' },
+  { code: '185 C', hex: '#E4002B' },
+  { code: '186 C', hex: '#C8102E' },
+  { code: '199 C', hex: '#D50032' },
+  { code: '201 C', hex: '#9E1B32' },
+  { code: 'Warm Red C', hex: '#F9423A' },
+  { code: 'Rubine Red C', hex: '#CE0058' },
+  { code: 'Rhodamine Red C', hex: '#E10098' },
+  { code: '219 C', hex: '#98004D' },
+  { code: 'Orange 021 C', hex: '#FE5000' },
+  { code: '1655 C', hex: '#FF5C39' },
+  { code: '165 C', hex: '#FF5C1D' },
+  { code: '1585 C', hex: '#FF8200' },
+  { code: '144 C', hex: '#ED8B00' },
+  { code: '158 C', hex: '#E9662C' },
+  { code: 'Yellow C', hex: '#FEDD00' },
+  { code: 'Yellow 012 C', hex: '#FFD100' },
+  { code: '109 C', hex: '#FFD400' },
+  { code: '116 C', hex: '#FFCD00' },
+  { code: '123 C', hex: '#FFC72C' },
+  { code: '7548 C', hex: '#FFB81C' },
+  { code: '355 C', hex: '#00B140' },
+  { code: '348 C', hex: '#00843D' },
+  { code: '7742 C', hex: '#6A7F10' },
+  { code: '7739 C', hex: '#7AB800' },
+  { code: '368 C', hex: '#78BE20' },
+  { code: '375 C', hex: '#97D700' },
+  { code: '7481 C', hex: '#43B02A' },
+  { code: '340 C', hex: '#00594C' },
+  { code: '3305 C', hex: '#00534C' },
+  { code: 'Reflex Blue C', hex: '#001489' },
+  { code: '286 C', hex: '#0032A0' },
+  { code: '293 C', hex: '#0033A0' },
+  { code: '2925 C', hex: '#0091DA' },
+  { code: '2995 C', hex: '#00A9E0' },
+  { code: '7461 C', hex: '#0093B2' },
+  { code: '647 C', hex: '#205C7D' },
+  { code: '7546 C', hex: '#2E3A45' },
+  { code: 'Purple C', hex: '#7D3F98' },
+  { code: '2685 C', hex: '#330072' },
+  { code: '2597 C', hex: '#871EB1' },
+  { code: '2725 C', hex: '#6E4CAF' },
+  { code: '2587 C', hex: '#9063CD' },
+  { code: '7519 C', hex: '#A9895C' },
+  { code: '469 C', hex: '#5C4033' },
+  { code: '7526 C', hex: '#7F5539' },
+];
+const PANTONE_RGB = PANTONE_TABLE.map((p) => ({ ...p, rgb: hexToRgb(p.hex) }));
+
+function nearestPantone(hex) {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return null;
+  let best = null;
+  let bestDist = Infinity;
+  for (const p of PANTONE_RGB) {
+    const dr = rgb.r - p.rgb.r, dg = rgb.g - p.rgb.g, db = rgb.b - p.rgb.b;
+    const dist = dr * dr + dg * dg + db * db;
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = p;
+    }
+  }
+  return best ? best.code : null;
+}
+
 const BLOCK_TYPE_META = {
   imagem: {
     blockType: 'image_download', label: 'Imagem', icon: '🖼️',
@@ -293,6 +382,7 @@ function SectionCard({ brand, section, canWrite, onChange, onDeleteSection }) {
   const [draft, setDraft] = useState({});
   const [editingBlock, setEditingBlock] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [pantoneAuto, setPantoneAuto] = useState(true);
 
   const gridBlocks = section.blocks.filter((b) => GRID_TYPES.includes(b.block_type));
   const flowBlocks = section.blocks.filter((b) => !GRID_TYPES.includes(b.block_type));
@@ -302,6 +392,7 @@ function SectionCard({ brand, section, canWrite, onChange, onDeleteSection }) {
     setFormKey(key);
     setDraft({});
     setEditingBlock(null);
+    setPantoneAuto(true);
   }
 
   function openEdit(block) {
@@ -309,6 +400,7 @@ function SectionCard({ brand, section, canWrite, onChange, onDeleteSection }) {
     setFormKey(key);
     setDraft({ ...block });
     setEditingBlock(block);
+    setPantoneAuto(!block.color_pantone);
   }
 
   function closeForm() {
@@ -410,10 +502,12 @@ function SectionCard({ brand, section, canWrite, onChange, onDeleteSection }) {
                               color_hex: value,
                               color_rgb: `${rgb.r} ${rgb.g} ${rgb.b}`,
                               color_cmyk: `${cmyk.c} ${cmyk.m} ${cmyk.y} ${cmyk.k}`,
+                              color_pantone: pantoneAuto ? nearestPantone(value) || '' : d.color_pantone,
                             }));
                             return;
                           }
                         }
+                        if (f.key === 'color_pantone') setPantoneAuto(false);
                         setDraft((d) => ({ ...d, [f.key]: value }));
                       }}
                     />
