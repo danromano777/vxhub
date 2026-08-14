@@ -151,7 +151,7 @@ function ClientCard({ brand, canWrite, onChange, onDelete }) {
           </div>
         </div>
         <div className="client-card__actions">
-          <button className="icon-btn icon-btn--purple" onClick={() => navigate(`/brands/${brand.id}`)}>
+          <button className="icon-btn icon-btn--purple" onClick={() => navigate(`/brands/${brand.id}/sections`)}>
             📂 Seções
           </button>
           {canWrite && (
@@ -197,7 +197,7 @@ function SecoesTab({ brands }) {
   return (
     <div className="sections-grid">
       {rows.map(({ brand, type }) => (
-        <Link key={`${brand.id}-${type.key}`} to={`/brands/${brand.id}`} className="section-row">
+        <Link key={`${brand.id}-${type.key}`} to={`/brands/${brand.id}/sections`} className="section-row">
           <div>
             <div className="section-row__name">{type.label}</div>
             <div className="section-row__brand">{brand.name}</div>
