@@ -141,7 +141,7 @@ footer a:hover{color:var(--mint)}
 }
 .drive:hover{transform:translateY(-2px);box-shadow:0 14px 30px -14px rgba(127,245,196,.6)}
 .loading-state{min-height:100vh;display:grid;place-items:center;color:var(--muted);font-family:var(--mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase}
-.mark-logo{max-width:78%;max-height:60px;object-fit:contain;filter:drop-shadow(0 4px 20px rgba(0,0,0,.35))}
+.mark-logo{max-width:82%;max-height:94px;object-fit:contain;filter:drop-shadow(0 4px 20px rgba(0,0,0,.35))}
 .tile.is-pale .mark-logo{filter:none}
 .hero-logo{max-width:min(320px,72%);max-height:96px;object-fit:contain;filter:drop-shadow(0 6px 28px rgba(0,0,0,.35))}
 .hero.is-pale .hero-logo{filter:none}
@@ -312,6 +312,47 @@ function loading(){
   app.innerHTML='<div class="loading-state">Carregando…</div>';
 }
 
+/* alguns arquivos de logo têm bastante espaço vazio/transparente ao redor da marca,
+   fazendo eles parecerem menores que os outros dentro do mesmo box. Isso recorta
+   essa margem, sem afetar o arquivo original. Se não der (ex: CORS), a imagem
+   original continua sendo exibida normalmente. */
+function trimLogoPadding(imgEl){
+  if(!imgEl || !imgEl.src) return;
+  var probe = new Image();
+  probe.crossOrigin = 'anonymous';
+  probe.onload = function(){
+    try{
+      var w = probe.naturalWidth, h = probe.naturalHeight;
+      if(!w || !h) return;
+      var canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(probe, 0, 0);
+      var data = ctx.getImageData(0, 0, w, h).data;
+      var top = h, bottom = 0, left = w, right = 0, THRESH = 10;
+      for(var y = 0; y < h; y++){
+        for(var x = 0; x < w; x++){
+          if(data[(y * w + x) * 4 + 3] > THRESH){
+            if(y < top) top = y;
+            if(y > bottom) bottom = y;
+            if(x < left) left = x;
+            if(x > right) right = x;
+          }
+        }
+      }
+      if(right <= left || bottom <= top) return;
+      var tw = right - left + 1, th = bottom - top + 1;
+      if((tw * th) / (w * h) > 0.85) return;
+      var out = document.createElement('canvas');
+      out.width = tw; out.height = th;
+      out.getContext('2d').drawImage(canvas, left, top, tw, th, 0, 0, tw, th);
+      imgEl.src = out.toDataURL('image/png');
+    }catch(e){ /* CORS ou outra falha: mantém a imagem original */ }
+  };
+  probe.onerror = function(){};
+  probe.src = imgEl.src;
+}
+
 function home(){
   loading();
   Promise.all([
@@ -356,6 +397,7 @@ function renderHome(){
   '<a href="https://vxcomunicacao.com.br/" target="_blank" rel="noopener">VX Comunicação</a></footer></div>';
 
   wireTiles();
+  app.querySelectorAll('.mark-logo').forEach(trimLogoPadding);
   var chips=app.querySelectorAll('.chip'), tiless=app.querySelectorAll('.tile'), tally=app.querySelector('#tally');
   chips.forEach(function(chip){
     chip.addEventListener('click',function(){
