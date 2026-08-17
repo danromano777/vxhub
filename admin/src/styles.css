@@ -260,6 +260,9 @@ button { font-family: inherit; }
   padding: 9px 11px; border-radius: 8px; border: 1px solid var(--line);
   background: var(--fill); color: var(--paper);
 }
+select option {
+  background: var(--bg2); color: var(--paper);
+}
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .checkbox { flex-direction: row; align-items: center; gap: 8px; }
 .form > fieldset > button {
