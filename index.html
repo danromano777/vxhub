@@ -355,18 +355,36 @@ function trimLogoPadding(imgEl){
       var ctx = canvas.getContext('2d');
       ctx.drawImage(probe, 0, 0);
       var data = ctx.getImageData(0, 0, w, h).data;
-      var top = h, bottom = 0, left = w, right = 0, THRESH = 10;
-      var sumA = 0, sumAX = 0;
+
+      /* alguns arquivos não têm fundo transparente, têm fundo sólido opaco
+         (branco, geralmente) - nesse caso, alpha sozinho não separa "marca"
+         de "fundo", já que os dois têm opacidade 255. Detecta a cor de fundo
+         olhando os 4 cantos: se todos baterem, usa a distância de cor até
+         essa cor como critério de "isso é conteúdo", em vez de só alpha. */
+      function pxAt(x,y){ var i=(y*w+x)*4; return [data[i],data[i+1],data[i+2],data[i+3]]; }
+      function closeColor(a,b){ return Math.abs(a[0]-b[0])<12 && Math.abs(a[1]-b[1])<12 && Math.abs(a[2]-b[2])<12 && Math.abs(a[3]-b[3])<12; }
+      var bg = pxAt(0,0);
+      var opaqueBg = bg[3] > 200 && closeColor(bg,pxAt(w-1,0)) && closeColor(bg,pxAt(0,h-1)) && closeColor(bg,pxAt(w-1,h-1));
+
+      var top = h, bottom = 0, left = w, right = 0;
+      var sumW = 0, sumWX = 0;
       for(var y = 0; y < h; y++){
         for(var x = 0; x < w; x++){
-          var a = data[(y * w + x) * 4 + 3];
-          if(a > THRESH){
+          var i = (y * w + x) * 4;
+          var weight;
+          if(opaqueBg){
+            var dr = data[i]-bg[0], dg = data[i+1]-bg[1], db = data[i+2]-bg[2];
+            weight = Math.min(255, Math.sqrt(dr*dr+dg*dg+db*db));
+          } else {
+            weight = data[i+3];
+          }
+          if(weight > 12){
             if(y < top) top = y;
             if(y > bottom) bottom = y;
             if(x < left) left = x;
             if(x > right) right = x;
-            sumA += a;
-            sumAX += a * x;
+            sumW += weight;
+            sumWX += weight * x;
           }
         }
       }
@@ -377,7 +395,7 @@ function trimLogoPadding(imgEl){
          mais "peso" de tinta de um lado mesmo com a caixa bem cortada.
          Calcula o centro de massa real (ponderado pelos pixels visíveis)
          e guarda o desvio pra compensar na hora de exibir. */
-      var centroidX = sumA ? (sumAX / sumA) : (left + tw / 2);
+      var centroidX = sumW ? (sumWX / sumW) : (left + tw / 2);
       var boxCenterX = left + tw / 2;
       var offsetRatio = (centroidX - boxCenterX) / tw;
       var MAX_NUDGE = 0.06;
