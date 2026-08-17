@@ -47,6 +47,8 @@ export default function Dashboard() {
 function ClientesTab({ brands, canWrite, onChange }) {
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('ordem');
+  const [groupFilter, setGroupFilter] = useState('');
+  const [tagFilter, setTagFilter] = useState('');
 
   async function handleDelete(id, name) {
     if (!confirm(`Excluir a marca "${name}"? Essa ação não pode ser desfeita.`)) return;
@@ -54,22 +56,34 @@ function ClientesTab({ brands, canWrite, onChange }) {
     onChange();
   }
 
+  const groupOptions = useMemo(
+    () => [...new Set(brands.map((b) => b.brand_group).filter(Boolean))].sort(),
+    [brands]
+  );
+  const tagOptions = useMemo(
+    () => [...new Set(brands.map((b) => b.filter_key).filter(Boolean))].sort(),
+    [brands]
+  );
+
   const visibleBrands = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const filtered = q
-      ? brands.filter(
-          (b) =>
-            b.name.toLowerCase().includes(q) ||
-            b.slug.toLowerCase().includes(q) ||
-            (b.brand_group || '').toLowerCase().includes(q)
-        )
-      : brands;
+    const filtered = brands.filter((b) => {
+      if (groupFilter && b.brand_group !== groupFilter) return false;
+      if (tagFilter && b.filter_key !== tagFilter) return false;
+      if (!q) return true;
+      return (
+        b.name.toLowerCase().includes(q) ||
+        b.slug.toLowerCase().includes(q) ||
+        (b.brand_group || '').toLowerCase().includes(q) ||
+        (b.filter_key || '').toLowerCase().includes(q)
+      );
+    });
     const sorted = [...filtered];
     if (sortBy === 'nome-asc') sorted.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
     else if (sortBy === 'nome-desc') sorted.sort((a, b) => b.name.localeCompare(a.name, 'pt-BR'));
     else sorted.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0) || a.id - b.id);
     return sorted;
-  }, [brands, search, sortBy]);
+  }, [brands, search, sortBy, groupFilter, tagFilter]);
 
   return (
     <div>
@@ -84,10 +98,26 @@ function ClientesTab({ brands, canWrite, onChange }) {
       <div className="client-search">
         <input
           type="search"
-          placeholder="Buscar por nome, slug ou grupo…"
+          placeholder="Buscar por nome, slug, grupo ou filtro…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
+        <select value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)}>
+          <option value="">Todos os grupos</option>
+          {groupOptions.map((g) => (
+            <option key={g} value={g}>
+              {g}
+            </option>
+          ))}
+        </select>
+        <select value={tagFilter} onChange={(e) => setTagFilter(e.target.value)}>
+          <option value="">Todos os filtros</option>
+          {tagOptions.map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
+        </select>
         <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
           <option value="ordem">Ordem definida</option>
           <option value="nome-asc">Nome (A–Z)</option>
@@ -95,7 +125,7 @@ function ClientesTab({ brands, canWrite, onChange }) {
         </select>
       </div>
       {!visibleBrands.length ? (
-        <p className="empty-block">Nenhum cliente encontrado para "{search}".</p>
+        <p className="empty-block">Nenhum cliente encontrado.</p>
       ) : (
         <div className="client-grid">
           {visibleBrands.map((b) => (

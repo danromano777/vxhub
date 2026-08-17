@@ -236,9 +236,9 @@ button { font-family: inherit; }
 
 .badge { padding: 4px 10px; border-radius: 999px; background: var(--fill-hover); font-size: 12px; color: var(--muted); }
 
-.client-search { display: flex; gap: 10px; margin-bottom: 18px; }
+.client-search { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
 .client-search input[type="search"] {
-  flex: 1; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--line);
+  flex: 1; min-width: 200px; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--line);
   background: var(--fill); color: var(--paper); font-size: 14px;
 }
 .client-search select {
