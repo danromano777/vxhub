@@ -348,19 +348,39 @@ function trimLogoPadding(imgEl){
       ctx.drawImage(probe, 0, 0);
       var data = ctx.getImageData(0, 0, w, h).data;
       var top = h, bottom = 0, left = w, right = 0, THRESH = 10;
+      var sumA = 0, sumAX = 0;
       for(var y = 0; y < h; y++){
         for(var x = 0; x < w; x++){
-          if(data[(y * w + x) * 4 + 3] > THRESH){
+          var a = data[(y * w + x) * 4 + 3];
+          if(a > THRESH){
             if(y < top) top = y;
             if(y > bottom) bottom = y;
             if(x < left) left = x;
             if(x > right) right = x;
+            sumA += a;
+            sumAX += a * x;
           }
         }
       }
       if(right <= left || bottom <= top) return;
       var tw = right - left + 1, th = bottom - top + 1;
-      if((tw * th) / (w * h) > 0.85) return;
+
+      /* recorte geométrico nem sempre = centro visual: uma marca pode ter
+         mais "peso" de tinta de um lado mesmo com a caixa bem cortada.
+         Calcula o centro de massa real (ponderado pelos pixels visíveis)
+         e guarda o desvio pra compensar na hora de exibir. */
+      var centroidX = sumA ? (sumAX / sumA) : (left + tw / 2);
+      var boxCenterX = left + tw / 2;
+      var offsetRatio = (centroidX - boxCenterX) / tw;
+      var MAX_NUDGE = 0.06;
+      if(offsetRatio > MAX_NUDGE) offsetRatio = MAX_NUDGE;
+      if(offsetRatio < -MAX_NUDGE) offsetRatio = -MAX_NUDGE;
+      imgEl._opticalOffsetRatio = Math.abs(offsetRatio) > 0.012 ? offsetRatio : 0;
+
+      if((tw * th) / (w * h) > 0.85){
+        if(imgEl._fitLogoApply) imgEl._fitLogoApply();
+        return;
+      }
       var out = document.createElement('canvas');
       out.width = tw; out.height = th;
       out.getContext('2d').drawImage(canvas, left, top, tw, th, 0, 0, tw, th);
@@ -389,8 +409,11 @@ function fitLogo(imgEl,opts){
     var targetW = BASE * Math.sqrt(ratio);
     var targetH = BASE / Math.sqrt(ratio);
     var scale = Math.min(maxW / targetW, maxH / targetH, 1);
-    imgEl.style.width = Math.round(targetW * scale) + 'px';
+    var finalW = Math.round(targetW * scale);
+    imgEl.style.width = finalW + 'px';
     imgEl.style.height = Math.round(targetH * scale) + 'px';
+    var nudge = imgEl._opticalOffsetRatio || 0;
+    imgEl.style.transform = nudge ? 'translateX(' + (-nudge * finalW).toFixed(2) + 'px)' : '';
   }
   imgEl._fitLogoApply = apply;
   imgEl.addEventListener('load', apply);
