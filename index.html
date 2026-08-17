@@ -634,7 +634,13 @@ function renderBlock(block){
 
 function brandPage(slug){
   loading();
-  fetchJSON(API_BASE+'/brands/'+encodeURIComponent(slug)).then(renderBrandPage).catch(function(){
+  Promise.all([
+    fetchJSON(API_BASE+'/site-content').catch(function(){return null;}),
+    fetchJSON(API_BASE+'/brands/'+encodeURIComponent(slug))
+  ]).then(function(res){
+    if(res[0] && res[0].title) siteContent=res[0];
+    renderBrandPage(res[1]);
+  }).catch(function(){
     location.hash='#/';
   });
 }
