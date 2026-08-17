@@ -225,6 +225,13 @@ export default function ClientSections() {
     load();
   }
 
+  async function handleRenameSection(section) {
+    const title = prompt('Novo nome da seção:', section.title);
+    if (!title || title === section.title) return;
+    await api.updateSection(brand.id, section.id, { title, type: section.type, sort_order: section.sort_order });
+    load();
+  }
+
   return (
     <div>
       <Link to="/" className="backlink">
@@ -265,6 +272,7 @@ export default function ClientSections() {
           canWrite={canWrite}
           onChange={load}
           onDeleteSection={handleDeleteSection}
+          onRenameSection={handleRenameSection}
         />
       ))}
     </div>
@@ -399,7 +407,7 @@ function BlockPreview({ block, canWrite, onEdit, onDelete }) {
   );
 }
 
-function SectionCard({ brand, section, canWrite, onChange, onDeleteSection }) {
+function SectionCard({ brand, section, canWrite, onChange, onDeleteSection, onRenameSection }) {
   const [open, setOpen] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [formKey, setFormKey] = useState(null);
@@ -478,6 +486,9 @@ function SectionCard({ brand, section, canWrite, onChange, onDeleteSection }) {
         </div>
         {canWrite && (
           <div className="accordion__actions" onClick={(e) => e.stopPropagation()}>
+            <button className="icon-btn" onClick={() => onRenameSection(section)} title="Renomear seção">
+              ✎
+            </button>
             <button className="icon-btn" onClick={() => setShowModal(true)}>
               + Bloco
             </button>
