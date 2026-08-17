@@ -322,7 +322,13 @@ function fetchJSON(url){
 
 /* ================= views ================= */
 var app=document.getElementById('app');
-function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+/* remove caracteres invisiveis/de controle que as vezes vem junto ao colar
+   texto de outro lugar (espaco de largura zero, marcador de direcao, BOM
+   etc.) - sem isso eles aparecem como quadradinhos vazios na tela. */
+function stripInvisible(s){
+  return String(s).replace(/[\u0000-\u0008\u000B-\u000C\u000E-\u001F\u007F-\u009F\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF\uFFFC-\uFFFD]/g,'');
+}
+function esc(s){return stripInvisible(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
 function vars(g){return '--a:'+g.a+';--b:'+g.b+';--c:'+g.c+';--d:'+g.d+';--base:'+g.base+';--glow:'+g.glow;}
 function gradFor(b){return {a:b.grad_a||'#2A2A2A',b:b.grad_b||'#1A1A1A',c:b.grad_c||'#0F0F0F',d:b.grad_d||'#242424',base:b.grad_base||'#101010',glow:b.grad_glow||'rgba(255,255,255,.12)'};}
 
