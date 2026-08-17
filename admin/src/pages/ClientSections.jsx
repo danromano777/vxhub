@@ -241,7 +241,7 @@ export default function ClientSections() {
           </div>
         </div>
         <div className="detail-header__actions">
-          <a className="icon-btn" href="/" target="_blank" rel="noopener noreferrer">
+          <a className="icon-btn" href={`/#/marca/${brand.slug}`} target="_blank" rel="noopener noreferrer">
             🔗 Ver Página
           </a>
           {canWrite && (
@@ -294,10 +294,11 @@ function NovoBlocoModal({ onSelect, onClose }) {
   );
 }
 
-function BlockPreview({ block }) {
+function BlockPreview({ block, canWrite, onEdit, onDelete }) {
+  let content;
   switch (block.block_type) {
     case 'image_download':
-      return (
+      content = (
         <div className="block-tile">
           <div className="block-tile__preview">
             {block.file_url ? <img src={block.file_url} alt={block.title} /> : <span>🖼</span>}
@@ -313,8 +314,9 @@ function BlockPreview({ block }) {
           </div>
         </div>
       );
+      break;
     case 'video':
-      return (
+      content = (
         <div className="block-tile">
           <div className="block-tile__preview">
             {block.file_url ? (
@@ -330,15 +332,17 @@ function BlockPreview({ block }) {
           <div className="block-tile__caption">{block.title || 'sem título'}</div>
         </div>
       );
+      break;
     case 'font_card':
-      return (
+      content = (
         <div className="font-tile">
           <div className="font-tile__name">{block.title || block.font_name || 'sem nome'}</div>
           <div className="font-tile__preview">Aa</div>
         </div>
       );
+      break;
     case 'color_palette':
-      return (
+      content = (
         <div className="color-tile" style={{ borderColor: block.color_hex || '#444' }}>
           <div className="color-tile__swatch" style={{ backgroundColor: block.color_hex || '#222' }} />
           <div className="color-tile__meta">
@@ -350,8 +354,9 @@ function BlockPreview({ block }) {
           </div>
         </div>
       );
+      break;
     case 'code_snippet':
-      return (
+      content = (
         <div>
           <pre className="code-block">
             <code>{block.code_content}</code>
@@ -361,18 +366,37 @@ function BlockPreview({ block }) {
           </div>
         </div>
       );
+      break;
     case 'pdf_viewer':
-      return <iframe src={block.external_url} className="pdf-frame" title={block.title || 'PDF'} allow="autoplay" />;
+      content = <iframe src={block.external_url} className="pdf-frame" title={block.title || 'PDF'} allow="autoplay" />;
+      break;
     case 'link_item':
     default:
-      return (
+      content = (
         <div className="link-row">
           <a href={block.external_url} target="_blank" rel="noopener noreferrer">
             {block.title || block.external_url}
           </a>
         </div>
       );
+      break;
   }
+
+  return (
+    <div className="block-card">
+      {content}
+      {canWrite && (
+        <div className="block-card__actions">
+          <button type="button" onClick={() => onEdit(block)} title="Editar bloco">
+            ✎
+          </button>
+          <button type="button" className="danger" onClick={() => onDelete(block.id)} title="Excluir bloco">
+            🗑
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function SectionCard({ brand, section, canWrite, onChange, onDeleteSection }) {
@@ -468,12 +492,12 @@ function SectionCard({ brand, section, canWrite, onChange, onDeleteSection }) {
           {!!gridBlocks.length && (
             <div className="block-grid">
               {gridBlocks.map((b) => (
-                <BlockPreview key={b.id} block={b} />
+                <BlockPreview key={b.id} block={b} canWrite={canWrite} onEdit={openEdit} onDelete={handleDeleteBlock} />
               ))}
             </div>
           )}
           {flowBlocks.map((b) => (
-            <BlockPreview key={b.id} block={b} />
+            <BlockPreview key={b.id} block={b} canWrite={canWrite} onEdit={openEdit} onDelete={handleDeleteBlock} />
           ))}
           {!section.blocks.length && <p className="empty-block">Nenhum bloco cadastrado ainda.</p>}
 
@@ -534,27 +558,6 @@ function SectionCard({ brand, section, canWrite, onChange, onDeleteSection }) {
           )}
 
           {showModal && <NovoBlocoModal onSelect={openForm} onClose={() => setShowModal(false)} />}
-
-          {!!section.blocks.length && canWrite && (
-            <div className="manage-list">
-              <p className="manage-list__title">Gerenciar blocos:</p>
-              {section.blocks.map((b) => (
-                <div key={b.id} className="manage-item">
-                  <span className="manage-item__name">
-                    {b.title || b.font_name || b.color_hex || b.external_url || 'bloco'}
-                  </span>
-                  <span className="manage-item__actions">
-                    <button onClick={() => openEdit(b)} title="Editar bloco">
-                      ✎
-                    </button>
-                    <button onClick={() => handleDeleteBlock(b.id)} title="Excluir bloco" className="danger">
-                      🗑
-                    </button>
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       )}
     </div>
