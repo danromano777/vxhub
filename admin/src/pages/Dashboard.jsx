@@ -27,13 +27,6 @@ export default function Dashboard() {
     <div>
       <div className="stats">
         <div className="stat-card">
-          <div className="stat-card__icon stat-card__icon--blue">👥</div>
-          <div>
-            <div className="stat-card__value">{brands.length}</div>
-            <div className="stat-card__label">Clientes</div>
-          </div>
-        </div>
-        <div className="stat-card">
           <div className="stat-card__icon stat-card__icon--green">📄</div>
           <div>
             <div className="stat-card__value">{blocksCount}</div>
