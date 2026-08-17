@@ -49,7 +49,16 @@ a{text-decoration:none;color:inherit}
 }
 .rail h1{margin:28px 0 0;font-family:var(--display);font-weight:600;font-size:clamp(18px,1.6vw,22px);letter-spacing:-.02em;line-height:1.2}
 .rail p{margin:13px 0 0;max-width:31ch;font-size:14.5px;line-height:1.65;color:var(--muted)}
-.filters{margin-top:26px;display:flex;flex-wrap:wrap;gap:8px}
+.search-wrap{margin-top:26px}
+.search{
+  width:100%;box-sizing:border-box;appearance:none;padding:12px 16px;border-radius:999px;border:1px solid var(--line);
+  background:rgba(127,245,196,.05);font-family:var(--mono);font-size:12px;letter-spacing:.04em;color:var(--paper);
+  transition:border-color .22s,background .22s;
+}
+.search::placeholder{color:rgba(234,255,246,.4)}
+.search:hover{border-color:rgba(127,245,196,.3)}
+.search:focus{outline:none;border-color:var(--mint);background:rgba(127,245,196,.09)}
+.filters{margin-top:18px;display:flex;flex-wrap:wrap;gap:8px}
 .chip{
   appearance:none;cursor:pointer;padding:10px 13px 6px;border-radius:999px;border:1px solid var(--line);
   background:transparent;font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;line-height:1;
@@ -482,7 +491,8 @@ function renderHome(){
     var mark = b.logo_url
       ? '<img class="mark-logo" src="'+esc(b.logo_url)+'" alt="'+esc(b.name)+'" data-offset="'+(b.logo_offset_x!=null?b.logo_offset_x:'')+'">'
       : '<h2 class="mark">'+b.display_html+'</h2>';
-    return '<a class="tile'+(b.grad_pale?' is-pale':'')+'" href="#/marca/'+esc(b.slug)+'" data-group="'+esc(b.filter_key)+'" style="'+vars(g)+'">'+
+    var searchBlob=esc((b.name+' '+b.brand_group+' '+b.filter_key).toLowerCase());
+    return '<a class="tile'+(b.grad_pale?' is-pale':'')+'" href="#/marca/'+esc(b.slug)+'" data-group="'+esc(b.filter_key)+'" data-search="'+searchBlob+'" style="'+vars(g)+'">'+
       '<div class="inner"><div class="mesh"></div><div class="face">'+
         '<span class="group">'+esc(b.brand_group)+'</span>'+
         mark+
@@ -499,6 +509,7 @@ function renderHome(){
     '<div class="badge">'+esc(siteContent.subtitle||'Assets Source')+'</div>'+
     '<h1>'+esc(siteContent.title||'')+'</h1>'+
     '<p>'+esc(siteContent.description||'')+'</p>'+
+    '<div class="search-wrap"><input type="search" id="search" class="search" placeholder="Buscar marca…" aria-label="Buscar marca"></div>'+
     '<div class="filters" role="group" aria-label="Filtrar por grupo">'+chipsHtml+'</div>'+
     '<div class="tally"><span id="tally">'+BRANDS_LIST.length+'</span> de '+BRANDS_LIST.length+' marcas</div>'+
     '<a class="vx" href="https://vxcomunicacao.com.br/" target="_blank" rel="noopener">Desenvolvido pela VX</a>'+
@@ -513,16 +524,33 @@ function renderHome(){
     trimLogoPadding(img);
   });
   var chips=app.querySelectorAll('.chip'), tiless=app.querySelectorAll('.tile'), tally=app.querySelector('#tally');
+  var searchInput=app.querySelector('#search');
+  var activeFilter='todos';
+
+  function applyFilters(){
+    var q=(searchInput.value||'').trim().toLowerCase();
+    var n=0;
+    tiless.forEach(function(t){
+      var matchesGroup=(activeFilter==='todos'||t.dataset.group===activeFilter);
+      var matchesSearch=(!q||t.dataset.search.indexOf(q)!==-1);
+      var show=matchesGroup&&matchesSearch;
+      t.classList.toggle('is-off',!show); if(show)n++;
+    });
+    tally.textContent=n;
+  }
+
   chips.forEach(function(chip){
     chip.addEventListener('click',function(){
       chips.forEach(function(c){c.setAttribute('aria-pressed',String(c===chip));});
-      var f=chip.dataset.filter,n=0;
-      tiless.forEach(function(t){
-        var show=(f==='todos'||t.dataset.group===f);
-        t.classList.toggle('is-off',!show); if(show)n++;
-      });
-      tally.textContent=n;
+      activeFilter=chip.dataset.filter;
+      applyFilters();
     });
+  });
+
+  var searchDebounce;
+  searchInput.addEventListener('input',function(){
+    clearTimeout(searchDebounce);
+    searchDebounce=setTimeout(applyFilters,120);
   });
 }
 
