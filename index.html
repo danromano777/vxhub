@@ -73,12 +73,6 @@ a{text-decoration:none;color:inherit}
 }
 .chip:hover{color:var(--paper);border-color:rgba(127,245,196,.42);transform:translateY(-1px)}
 .chip[aria-pressed="true"]{background:linear-gradient(100deg,var(--lime),var(--turq));border-color:transparent;color:#04160F;font-weight:700}
-.vx{
-  display:inline-flex;align-items:center;gap:9px;margin-top:34px;padding-top:17px;border-top:1px solid rgba(127,245,196,.12);
-  font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:rgba(234,255,246,.45);transition:color .25s;
-}
-.vx::before{content:"";width:16px;height:1px;background:var(--mint);opacity:.7}
-.vx:hover{color:var(--mint)}
 
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(13px,1.3vw,20px)}
 .tile{
@@ -512,7 +506,6 @@ function renderHome(){
     '<p>'+esc(siteContent.description||'')+'</p>'+
     '<div class="search-wrap"><input type="search" id="search" class="search" placeholder="Buscar marca…" aria-label="Buscar marca"></div>'+
     '<div class="filters" role="group" aria-label="Filtrar por grupo">'+chipsHtml+'</div>'+
-    '<a class="vx" href="https://vxcomunicacao.com.br/" target="_blank" rel="noopener">Desenvolvido pela VX</a>'+
   '</header><main><div class="grid" id="grid">'+tiles+'</div></main>'+
   '<footer><span>vx.hub · Assets Source</span>'+
   '<a href="https://vxcomunicacao.com.br/" target="_blank" rel="noopener">VX Comunicação</a></footer></div>';
