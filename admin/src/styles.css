@@ -65,9 +65,7 @@ button { font-family: inherit; }
   display: flex; align-items: center; justify-content: space-between;
 }
 .topbar__brand { display: flex; align-items: center; gap: 12px; }
-.topbar__logo { height: 28px; width: auto; max-width: 120px; object-fit: contain; }
-.brandmark { font-weight: 700; }
-.brandmark span { color: var(--mint); font-weight: 400; }
+.topbar__logo { height: 28px; width: auto; max-width: 140px; object-fit: contain; }
 .topbar__tag { color: var(--muted); font-size: 13px; }
 .topbar__user { display: flex; align-items: center; gap: 14px; }
 .topbar__email { color: var(--muted); font-size: 13px; }

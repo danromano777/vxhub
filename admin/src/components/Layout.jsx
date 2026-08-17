@@ -2,15 +2,16 @@ import { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import defaultLogo from '../assets/vxhub-logo.png';
 
 export default function Layout() {
   const { user, logout } = useAuth();
-  const [siteLogo, setSiteLogo] = useState(null);
+  const [siteLogo, setSiteLogo] = useState(defaultLogo);
 
   useEffect(() => {
     api
       .getSiteContent()
-      .then((c) => setSiteLogo(c.logo_url || null))
+      .then((c) => setSiteLogo(c.logo_url || defaultLogo))
       .catch(() => {});
   }, []);
 
@@ -19,10 +20,7 @@ export default function Layout() {
       <header className="topbar">
         <div className="topbar__inner">
           <div className="topbar__brand">
-            {siteLogo && <img className="topbar__logo" src={siteLogo} alt="" />}
-            <span className="brandmark">
-              vx<span>.hub</span>
-            </span>
+            <img className="topbar__logo" src={siteLogo} alt="vx.hub" />
             <span className="topbar__tag">Admin</span>
           </div>
           <div className="topbar__user">
