@@ -21,20 +21,8 @@ export default function Dashboard() {
 
   if (loading) return <p className="loading">Carregando…</p>;
 
-  const blocksCount = brands.reduce((total, b) => total + Number(b.blocks_count || 0), 0);
-
   return (
     <div>
-      <div className="stats">
-        <div className="stat-card">
-          <div className="stat-card__icon stat-card__icon--green">📄</div>
-          <div>
-            <div className="stat-card__value">{blocksCount}</div>
-            <div className="stat-card__label">Blocos</div>
-          </div>
-        </div>
-      </div>
-
       <div className="tabs">
         <button className={`tab ${tab === 'clientes' ? 'active' : ''}`} onClick={() => setTab('clientes')}>
           👥 Clientes
