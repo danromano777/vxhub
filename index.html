@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>vx.hub | Assets Source — VX Comunicação</title>
 <meta name="description" content="O hub de arquivos da VX. Templates, logos, cores, fontes e tudo o que sua marca precisa.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="vx.hub | Assets Source">
+<meta property="og:description" content="O hub de arquivos da VX. Templates, logos, cores, fontes e tudo o que sua marca precisa.">
+<meta property="og:image" content="/og-logo.png">
+<meta name="twitter:card" content="summary_large_image">
 <style>
 @font-face{font-family:"Herokid";src:url("/fonts/Herokid-Regular.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap}
 @font-face{font-family:"Herokid";src:url("/fonts/Herokid-SemiBold.woff2") format("woff2");font-weight:600;font-style:normal;font-display:swap}
@@ -43,31 +48,31 @@ a{text-decoration:none;color:inherit}
 .pagehead{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
 .pagehead .lockup img{width:150px}
 .badge{
-  display:inline-block;margin-top:16px;padding:7px 16px 6px;border:1px solid var(--line);
+  display:inline-flex;align-items:center;justify-content:center;line-height:1;margin-top:16px;padding:10px 16px 6px;border:1px solid var(--line);
   border-radius:999px;background:rgba(127,245,196,.06);font-family:var(--mono);font-size:10px;
   letter-spacing:.34em;text-transform:uppercase;color:var(--mint);
 }
 .rail h1{margin:28px 0 0;font-family:var(--display);font-weight:600;font-size:clamp(18px,1.6vw,22px);letter-spacing:-.02em;line-height:1.2}
 .rail p{margin:13px 0 0;max-width:31ch;font-size:14.5px;line-height:1.65;color:var(--muted)}
-.filters{margin-top:26px;display:flex;flex-wrap:wrap;gap:8px}
+.search-wrap{margin-top:26px}
+.search{
+  width:100%;box-sizing:border-box;appearance:none;padding:12px 16px;border-radius:999px;border:1px solid var(--line);
+  background:rgba(127,245,196,.05);font-family:var(--mono);font-size:12px;letter-spacing:.04em;color:var(--paper);
+  transition:border-color .22s,background .22s;
+}
+.search::placeholder{color:rgba(234,255,246,.4)}
+.search:hover{border-color:rgba(127,245,196,.3)}
+.search:focus{outline:none;border-color:var(--mint);background:rgba(127,245,196,.09)}
+.filters{margin-top:18px;display:flex;flex-wrap:wrap;gap:8px}
 .chip{
-  appearance:none;cursor:pointer;padding:8px 13px;border-radius:999px;border:1px solid var(--line);
-  background:transparent;font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;
+  appearance:none;cursor:pointer;padding:10px 13px 6px;border-radius:999px;border:1px solid var(--line);
+  background:transparent;font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;line-height:1;
   text-transform:uppercase;color:rgba(234,255,246,.68);
+  display:inline-flex;align-items:center;justify-content:center;
   transition:border-color .22s,color .22s,background .22s,transform .22s;
 }
 .chip:hover{color:var(--paper);border-color:rgba(127,245,196,.42);transform:translateY(-1px)}
 .chip[aria-pressed="true"]{background:linear-gradient(100deg,var(--lime),var(--turq));border-color:transparent;color:#04160F;font-weight:700}
-.tally{
-  margin-top:22px;padding-top:17px;border-top:1px solid rgba(127,245,196,.12);
-  font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:rgba(234,255,246,.42);
-}
-.vx{
-  display:inline-flex;align-items:center;gap:9px;margin-top:18px;font-family:var(--mono);font-size:10px;
-  letter-spacing:.2em;text-transform:uppercase;color:rgba(234,255,246,.45);transition:color .25s;
-}
-.vx::before{content:"";width:16px;height:1px;background:var(--mint);opacity:.7}
-.vx:hover{color:var(--mint)}
 
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(13px,1.3vw,20px)}
 .tile{
@@ -136,9 +141,9 @@ footer a:hover{color:var(--mint)}
 .section__head h2{margin:0;font-family:var(--display);font-weight:600;font-size:clamp(20px,2.1vw,27px);letter-spacing:-.03em}
 .count{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:rgba(234,255,246,.4)}
 .drive{
-  display:inline-flex;align-items:center;gap:10px;margin-top:20px;padding:11px 20px;border-radius:999px;
+  display:inline-flex;align-items:center;justify-content:center;gap:10px;margin-top:20px;padding:13px 20px 9px;border-radius:999px;
   background:linear-gradient(100deg,var(--lime),var(--turq));color:#04160F;font-family:var(--mono);
-  font-size:10.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;transition:transform .25s,box-shadow .25s;
+  font-size:10.5px;font-weight:700;letter-spacing:.16em;line-height:1;text-transform:uppercase;transition:transform .25s,box-shadow .25s;
 }
 .drive:hover{transform:translateY(-2px);box-shadow:0 14px 30px -14px rgba(127,245,196,.6)}
 .loading-state{min-height:100vh;display:grid;place-items:center;color:var(--muted);font-family:var(--mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase}
@@ -178,7 +183,7 @@ footer a:hover{color:var(--mint)}
 .color__sw{height:92px}
 .color__in{padding:13px 14px 15px;font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:rgba(234,255,246,.55);line-height:1.9}
 .color__in b{display:block;font-size:12px;letter-spacing:.12em;color:var(--paper);margin-bottom:5px}
-.color__in .copyline{cursor:pointer;border-radius:6px;margin:0 -6px;padding:1px 6px;transition:background .15s,color .15s;user-select:none;-webkit-user-select:none}
+.color__in .copyline{cursor:pointer;border-radius:6px;margin:0 -6px;padding:1px 6px;transition:background .15s,color .15s;user-select:text;-webkit-user-select:text}
 .color__in .copyline:hover{background:rgba(127,245,196,.12);color:var(--paper)}
 .color__in .copyline svg{vertical-align:-2px}
 .color__in .copy-check{display:inline-flex;margin-left:8px;color:var(--lime);vertical-align:-2px}
@@ -192,7 +197,7 @@ footer a:hover{color:var(--mint)}
 .empty{margin-top:20px;padding:32px 24px;border:1px dashed rgba(127,245,196,.28);border-radius:16px;font-size:14.5px;line-height:1.65;color:var(--muted);max-width:60ch}
 .empty b{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--mint);margin-bottom:9px;font-weight:400}
 .nextnav{margin-top:clamp(40px,4.6vw,66px);padding-top:20px;border-top:1px solid rgba(127,245,196,.12);display:flex;gap:10px;flex-wrap:wrap}
-.nextnav a{padding:9px 15px;border:1px solid var(--line);border-radius:999px;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:rgba(234,255,246,.6);transition:color .22s,border-color .22s,transform .22s}
+.nextnav a{display:inline-flex;align-items:center;justify-content:center;line-height:1;padding:11px 15px 7px;border:1px solid var(--line);border-radius:999px;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:rgba(234,255,246,.6);transition:color .22s,border-color .22s,transform .22s}
 .nextnav a:hover{color:var(--paper);border-color:rgba(127,245,196,.45);transform:translateY(-2px)}
 
 @media(max-width:1080px){.grid{grid-template-columns:repeat(2,1fr)}}
@@ -321,7 +326,15 @@ function fetchJSON(url){
 
 /* ================= views ================= */
 var app=document.getElementById('app');
-function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+/* remove caracteres invisiveis/de controle que as vezes vem junto ao colar
+   texto de outro lugar (espaco de largura zero, marcador de direcao, BOM
+   etc.) - sem isso eles aparecem como quadradinhos vazios na tela. */
+function stripInvisible(s){
+  return String(s)
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F\uFE00-\uFE0F\uFFFC\uFFFD]/g,'')
+    .replace(/[\p{Cf}\p{Co}\p{Cn}]/gu,'');
+}
+function esc(s){return stripInvisible(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
 function vars(g){return '--a:'+g.a+';--b:'+g.b+';--c:'+g.c+';--d:'+g.d+';--base:'+g.base+';--glow:'+g.glow;}
 function gradFor(b){return {a:b.grad_a||'#2A2A2A',b:b.grad_b||'#1A1A1A',c:b.grad_c||'#0F0F0F',d:b.grad_d||'#242424',base:b.grad_base||'#101010',glow:b.grad_glow||'rgba(255,255,255,.12)'};}
 
@@ -346,20 +359,58 @@ function trimLogoPadding(imgEl){
       var ctx = canvas.getContext('2d');
       ctx.drawImage(probe, 0, 0);
       var data = ctx.getImageData(0, 0, w, h).data;
-      var top = h, bottom = 0, left = w, right = 0, THRESH = 10;
+
+      /* alguns arquivos não têm fundo transparente, têm fundo sólido opaco
+         (branco, geralmente) - nesse caso, alpha sozinho não separa "marca"
+         de "fundo", já que os dois têm opacidade 255. Detecta a cor de fundo
+         olhando os 4 cantos: se todos baterem, usa a distância de cor até
+         essa cor como critério de "isso é conteúdo", em vez de só alpha. */
+      function pxAt(x,y){ var i=(y*w+x)*4; return [data[i],data[i+1],data[i+2],data[i+3]]; }
+      function closeColor(a,b){ return Math.abs(a[0]-b[0])<12 && Math.abs(a[1]-b[1])<12 && Math.abs(a[2]-b[2])<12 && Math.abs(a[3]-b[3])<12; }
+      var bg = pxAt(0,0);
+      var opaqueBg = bg[3] > 200 && closeColor(bg,pxAt(w-1,0)) && closeColor(bg,pxAt(0,h-1)) && closeColor(bg,pxAt(w-1,h-1));
+
+      var top = h, bottom = 0, left = w, right = 0;
+      var sumW = 0, sumWX = 0;
       for(var y = 0; y < h; y++){
         for(var x = 0; x < w; x++){
-          if(data[(y * w + x) * 4 + 3] > THRESH){
+          var i = (y * w + x) * 4;
+          var weight;
+          if(opaqueBg){
+            var dr = data[i]-bg[0], dg = data[i+1]-bg[1], db = data[i+2]-bg[2];
+            weight = Math.min(255, Math.sqrt(dr*dr+dg*dg+db*db));
+          } else {
+            weight = data[i+3];
+          }
+          if(weight > 12){
             if(y < top) top = y;
             if(y > bottom) bottom = y;
             if(x < left) left = x;
             if(x > right) right = x;
+            sumW += weight;
+            sumWX += weight * x;
           }
         }
       }
       if(right <= left || bottom <= top) return;
       var tw = right - left + 1, th = bottom - top + 1;
-      if((tw * th) / (w * h) > 0.85) return;
+
+      /* recorte geométrico nem sempre = centro visual: uma marca pode ter
+         mais "peso" de tinta de um lado mesmo com a caixa bem cortada.
+         Calcula o centro de massa real (ponderado pelos pixels visíveis)
+         e guarda o desvio pra compensar na hora de exibir. */
+      var centroidX = sumW ? (sumWX / sumW) : (left + tw / 2);
+      var boxCenterX = left + tw / 2;
+      var offsetRatio = (centroidX - boxCenterX) / tw;
+      var MAX_NUDGE = 0.06;
+      if(offsetRatio > MAX_NUDGE) offsetRatio = MAX_NUDGE;
+      if(offsetRatio < -MAX_NUDGE) offsetRatio = -MAX_NUDGE;
+      imgEl._opticalOffsetRatio = Math.abs(offsetRatio) > 0.012 ? offsetRatio : 0;
+
+      if((tw * th) / (w * h) > 0.85){
+        if(imgEl._fitLogoApply) imgEl._fitLogoApply();
+        return;
+      }
       var out = document.createElement('canvas');
       out.width = tw; out.height = th;
       out.getContext('2d').drawImage(canvas, left, top, tw, th, 0, 0, tw, th);
@@ -388,8 +439,16 @@ function fitLogo(imgEl,opts){
     var targetW = BASE * Math.sqrt(ratio);
     var targetH = BASE / Math.sqrt(ratio);
     var scale = Math.min(maxW / targetW, maxH / targetH, 1);
-    imgEl.style.width = Math.round(targetW * scale) + 'px';
+    var finalW = Math.round(targetW * scale);
+    imgEl.style.width = finalW + 'px';
     imgEl.style.height = Math.round(targetH * scale) + 'px';
+    var manual = imgEl._manualOffsetPercent;
+    if(manual !== null && manual !== undefined && !isNaN(manual)){
+      imgEl.style.transform = manual ? 'translateX(' + ((manual / 100) * finalW).toFixed(2) + 'px)' : '';
+    } else {
+      var nudge = imgEl._opticalOffsetRatio || 0;
+      imgEl.style.transform = nudge ? 'translateX(' + (-nudge * finalW).toFixed(2) + 'px)' : '';
+    }
   }
   imgEl._fitLogoApply = apply;
   imgEl.addEventListener('load', apply);
@@ -425,9 +484,10 @@ function renderHome(){
   var tiles = BRANDS_LIST.map(function(b){
     var g=gradFor(b);
     var mark = b.logo_url
-      ? '<img class="mark-logo" src="'+esc(b.logo_url)+'" alt="'+esc(b.name)+'">'
+      ? '<img class="mark-logo" src="'+esc(b.logo_url)+'" alt="'+esc(b.name)+'" loading="lazy" data-offset="'+(b.logo_offset_x!=null?b.logo_offset_x:'')+'">'
       : '<h2 class="mark">'+b.display_html+'</h2>';
-    return '<a class="tile'+(b.grad_pale?' is-pale':'')+'" href="#/marca/'+esc(b.slug)+'" data-group="'+esc(b.filter_key)+'" style="'+vars(g)+'">'+
+    var searchBlob=esc((b.name+' '+b.brand_group+' '+b.filter_key).toLowerCase());
+    return '<a class="tile'+(b.grad_pale?' is-pale':'')+'" href="#/marca/'+esc(b.slug)+'" data-group="'+esc(b.filter_key)+'" data-search="'+searchBlob+'" style="'+vars(g)+'">'+
       '<div class="inner"><div class="mesh"></div><div class="face">'+
         '<span class="group">'+esc(b.brand_group)+'</span>'+
         mark+
@@ -444,29 +504,44 @@ function renderHome(){
     '<div class="badge">'+esc(siteContent.subtitle||'Assets Source')+'</div>'+
     '<h1>'+esc(siteContent.title||'')+'</h1>'+
     '<p>'+esc(siteContent.description||'')+'</p>'+
+    '<div class="search-wrap"><input type="search" id="search" class="search" placeholder="Buscar marca…" aria-label="Buscar marca"></div>'+
     '<div class="filters" role="group" aria-label="Filtrar por grupo">'+chipsHtml+'</div>'+
-    '<div class="tally"><span id="tally">'+BRANDS_LIST.length+'</span> de '+BRANDS_LIST.length+' marcas</div>'+
-    '<a class="vx" href="https://vxcomunicacao.com.br/" target="_blank" rel="noopener">Desenvolvido pela VX</a>'+
   '</header><main><div class="grid" id="grid">'+tiles+'</div></main>'+
   '<footer><span>vx.hub · Assets Source</span>'+
   '<a href="https://vxcomunicacao.com.br/" target="_blank" rel="noopener">VX Comunicação</a></footer></div>';
 
   wireTiles();
   app.querySelectorAll('.mark-logo').forEach(function(img){
+    img._manualOffsetPercent = img.dataset.offset ? Number(img.dataset.offset) : null;
     fitLogo(img);
     trimLogoPadding(img);
   });
-  var chips=app.querySelectorAll('.chip'), tiless=app.querySelectorAll('.tile'), tally=app.querySelector('#tally');
+  var chips=app.querySelectorAll('.chip'), tiless=app.querySelectorAll('.tile');
+  var searchInput=app.querySelector('#search');
+  var activeFilter='todos';
+
+  function applyFilters(){
+    var q=(searchInput.value||'').trim().toLowerCase();
+    tiless.forEach(function(t){
+      var matchesGroup=(activeFilter==='todos'||t.dataset.group===activeFilter);
+      var matchesSearch=(!q||t.dataset.search.indexOf(q)!==-1);
+      var show=matchesGroup&&matchesSearch;
+      t.classList.toggle('is-off',!show);
+    });
+  }
+
   chips.forEach(function(chip){
     chip.addEventListener('click',function(){
       chips.forEach(function(c){c.setAttribute('aria-pressed',String(c===chip));});
-      var f=chip.dataset.filter,n=0;
-      tiless.forEach(function(t){
-        var show=(f==='todos'||t.dataset.group===f);
-        t.classList.toggle('is-off',!show); if(show)n++;
-      });
-      tally.textContent=n;
+      activeFilter=chip.dataset.filter;
+      applyFilters();
     });
+  });
+
+  var searchDebounce;
+  searchInput.addEventListener('input',function(){
+    clearTimeout(searchDebounce);
+    searchDebounce=setTimeout(applyFilters,120);
   });
 }
 
@@ -552,7 +627,13 @@ function renderBlock(block){
 
 function brandPage(slug){
   loading();
-  fetchJSON(API_BASE+'/brands/'+encodeURIComponent(slug)).then(renderBrandPage).catch(function(){
+  Promise.all([
+    fetchJSON(API_BASE+'/site-content').catch(function(){return null;}),
+    fetchJSON(API_BASE+'/brands/'+encodeURIComponent(slug))
+  ]).then(function(res){
+    if(res[0] && res[0].title) siteContent=res[0];
+    renderBrandPage(res[1]);
+  }).catch(function(){
     location.hash='#/';
   });
 }
@@ -588,6 +669,7 @@ function renderBrandPage(b){
 
   var heroLogoEl=app.querySelector('.hero-logo');
   if(heroLogoEl){
+    heroLogoEl._manualOffsetPercent = b.logo_offset_x!=null ? Number(b.logo_offset_x) : null;
     fitLogo(heroLogoEl,{container:'.hero__txt',maxWRatio:0.72,maxH:96,base:92});
     trimLogoPadding(heroLogoEl);
   }

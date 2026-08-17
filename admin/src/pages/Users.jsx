@@ -6,6 +6,18 @@ import { useAuth } from '../context/AuthContext.jsx';
 const ROLES = ['admin', 'editor', 'viewer'];
 
 export default function Users() {
+  return (
+    <div>
+      <Link to="/" className="backlink">
+        ← Voltar para Clientes
+      </Link>
+      <h1>Usuários</h1>
+      <UsersPanel />
+    </div>
+  );
+}
+
+export function UsersPanel() {
   const { user: me } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -45,10 +57,6 @@ export default function Users() {
 
   return (
     <div>
-      <Link to="/" className="backlink">
-        ← Voltar para Clientes
-      </Link>
-      <h1>Usuários</h1>
       <table className="table">
         <thead>
           <tr>

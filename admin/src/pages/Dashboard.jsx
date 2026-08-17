@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import { SiteContentPanel } from './SiteContent.jsx';
+import { UsersPanel } from './Users.jsx';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -19,67 +21,69 @@ export default function Dashboard() {
 
   if (loading) return <p className="loading">Carregando…</p>;
 
-  const sectionsCount = brands.reduce((total, b) => total + Number(b.sections_count || 0), 0);
-  const blocksCount = brands.reduce((total, b) => total + Number(b.blocks_count || 0), 0);
-
   return (
     <div>
-      <div className="stats">
-        <div className="stat-card">
-          <div className="stat-card__icon stat-card__icon--blue">👥</div>
-          <div>
-            <div className="stat-card__value">{brands.length}</div>
-            <div className="stat-card__label">Clientes</div>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-card__icon stat-card__icon--purple">📂</div>
-          <div>
-            <div className="stat-card__value">{sectionsCount}</div>
-            <div className="stat-card__label">Seções</div>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-card__icon stat-card__icon--green">📄</div>
-          <div>
-            <div className="stat-card__value">{blocksCount}</div>
-            <div className="stat-card__label">Blocos</div>
-          </div>
-        </div>
-      </div>
-
       <div className="tabs">
         <button className={`tab ${tab === 'clientes' ? 'active' : ''}`} onClick={() => setTab('clientes')}>
           👥 Clientes
         </button>
-        <button className={`tab ${tab === 'secoes' ? 'active' : ''}`} onClick={() => setTab('secoes')}>
-          📂 Seções
-        </button>
-        <Link className="tab" to="/site-content">
+        <button className={`tab ${tab === 'conteudo' ? 'active' : ''}`} onClick={() => setTab('conteudo')}>
           📝 Conteúdo do Site
-        </Link>
+        </button>
         {user.role === 'admin' && (
-          <Link className="tab" to="/users">
+          <button className={`tab ${tab === 'usuarios' ? 'active' : ''}`} onClick={() => setTab('usuarios')}>
             👤 Usuários
-          </Link>
+          </button>
         )}
       </div>
 
-      {tab === 'clientes' ? (
-        <ClientesTab brands={brands} canWrite={canWrite} onChange={load} />
-      ) : (
-        <SecoesTab brands={brands} />
-      )}
+      {tab === 'clientes' && <ClientesTab brands={brands} canWrite={canWrite} onChange={load} />}
+      {tab === 'conteudo' && <SiteContentPanel />}
+      {tab === 'usuarios' && user.role === 'admin' && <UsersPanel />}
     </div>
   );
 }
 
 function ClientesTab({ brands, canWrite, onChange }) {
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState('ordem');
+  const [groupFilter, setGroupFilter] = useState('');
+  const [tagFilter, setTagFilter] = useState('');
+
   async function handleDelete(id, name) {
     if (!confirm(`Excluir a marca "${name}"? Essa ação não pode ser desfeita.`)) return;
     await api.deleteBrand(id);
     onChange();
   }
+
+  const groupOptions = useMemo(
+    () => [...new Set(brands.map((b) => b.brand_group).filter(Boolean))].sort(),
+    [brands]
+  );
+  const tagOptions = useMemo(
+    () => [...new Set(brands.map((b) => b.filter_key).filter(Boolean))].sort(),
+    [brands]
+  );
+
+  const visibleBrands = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const filtered = brands.filter((b) => {
+      if (groupFilter && b.brand_group !== groupFilter) return false;
+      if (tagFilter && b.filter_key !== tagFilter) return false;
+      if (!q) return true;
+      return (
+        b.name.toLowerCase().includes(q) ||
+        b.slug.toLowerCase().includes(q) ||
+        (b.brand_group || '').toLowerCase().includes(q) ||
+        (b.filter_key || '').toLowerCase().includes(q)
+      );
+    });
+    const sorted = [...filtered];
+    if (sortBy === 'nome-asc') sorted.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+    else if (sortBy === 'nome-desc') sorted.sort((a, b) => b.name.localeCompare(a.name, 'pt-BR'));
+    else sorted.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0) || a.id - b.id);
+    return sorted;
+  }, [brands, search, sortBy, groupFilter, tagFilter]);
 
   return (
     <div>
@@ -91,11 +95,44 @@ function ClientesTab({ brands, canWrite, onChange }) {
           </Link>
         )}
       </div>
-      <div className="client-grid">
-        {brands.map((b) => (
-          <ClientCard key={b.id} brand={b} canWrite={canWrite} onChange={onChange} onDelete={handleDelete} />
-        ))}
+      <div className="client-search">
+        <input
+          type="search"
+          placeholder="Buscar por nome, slug, grupo ou filtro…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <select value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)}>
+          <option value="">Todos os grupos</option>
+          {groupOptions.map((g) => (
+            <option key={g} value={g}>
+              {g}
+            </option>
+          ))}
+        </select>
+        <select value={tagFilter} onChange={(e) => setTagFilter(e.target.value)}>
+          <option value="">Todos os filtros</option>
+          {tagOptions.map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
+        </select>
+        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+          <option value="ordem">Ordem definida</option>
+          <option value="nome-asc">Nome (A–Z)</option>
+          <option value="nome-desc">Nome (Z–A)</option>
+        </select>
       </div>
+      {!visibleBrands.length ? (
+        <p className="empty-block">Nenhum cliente encontrado.</p>
+      ) : (
+        <div className="client-grid">
+          {visibleBrands.map((b) => (
+            <ClientCard key={b.id} brand={b} canWrite={canWrite} onChange={onChange} onDelete={handleDelete} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -106,6 +143,16 @@ const CORNER_LABELS = [
   { key: 'grad_c', label: 'Baixo esquerdo' },
   { key: 'grad_d', label: 'Baixo direito' },
 ];
+
+function hexToRgba(hex, alpha) {
+  const clean = String(hex).replace('#', '').trim();
+  const full = clean.length === 3 ? clean.split('').map((c) => c + c).join('') : clean;
+  if (!/^[0-9a-fA-F]{6}$/.test(full)) return `rgba(196,255,77,${alpha})`;
+  const r = parseInt(full.slice(0, 2), 16);
+  const g = parseInt(full.slice(2, 4), 16);
+  const b = parseInt(full.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
 
 function ClientCard({ brand, canWrite, onChange, onDelete }) {
   const fileRef = useRef(null);
@@ -121,6 +168,8 @@ function ClientCard({ brand, canWrite, onChange, onDelete }) {
       grad_b: brand.grad_b || '#1A1A1A',
       grad_c: brand.grad_c || '#0F0F0F',
       grad_d: brand.grad_d || '#242424',
+      grad_base: brand.grad_base || '#07261f',
+      grad_pale: !!brand.grad_pale,
     });
     setEditingColors(true);
   }
@@ -128,7 +177,8 @@ function ClientCard({ brand, canWrite, onChange, onDelete }) {
   async function handleSaveColors() {
     setSavingColors(true);
     try {
-      await api.updateBrand(brand.id, { ...brand, ...colorDraft });
+      const grad_glow = hexToRgba(colorDraft.grad_a, 0.45);
+      await api.updateBrand(brand.id, { ...brand, ...colorDraft, grad_glow });
       setEditingColors(false);
       onChange();
     } catch (err) {
@@ -227,7 +277,23 @@ function ClientCard({ brand, canWrite, onChange, onDelete }) {
                 <span>{c.label}</span>
               </label>
             ))}
+            <label className="color-editor__field">
+              <input
+                type="color"
+                value={colorDraft.grad_base}
+                onChange={(e) => setColorDraft((d) => ({ ...d, grad_base: e.target.value }))}
+              />
+              <span>Fundo do card</span>
+            </label>
           </div>
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={!!colorDraft.grad_pale}
+              onChange={(e) => setColorDraft((d) => ({ ...d, grad_pale: e.target.checked }))}
+            />
+            Fundo claro (pale)
+          </label>
           <div className="color-editor__footer">
             <div className="color-editor__preview">
               <span>Preview:</span>
@@ -247,37 +313,6 @@ function ClientCard({ brand, canWrite, onChange, onDelete }) {
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function SecoesTab({ brands }) {
-  const [rows, setRows] = useState(null);
-
-  useEffect(() => {
-    Promise.all(brands.map((b) => api.getBrand(b.id))).then((details) => {
-      setRows(
-        details.flatMap((d) =>
-          d.sections.map((s) => ({ brand: d, section: s }))
-        )
-      );
-    });
-  }, [brands]);
-
-  if (rows === null) return <p className="loading">Carregando…</p>;
-  if (!rows.length) return <p className="loading">Nenhuma seção cadastrada ainda.</p>;
-
-  return (
-    <div className="sections-grid">
-      {rows.map(({ brand, section }) => (
-        <Link key={section.id} to={`/brands/${brand.id}/sections`} className="section-row">
-          <div>
-            <div className="section-row__name">{section.title}</div>
-            <div className="section-row__brand">{brand.name}</div>
-          </div>
-          <span className="badge">{section.blocks.length} blocos</span>
-        </Link>
-      ))}
     </div>
   );
 }

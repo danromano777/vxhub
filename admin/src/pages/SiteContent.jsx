@@ -4,6 +4,18 @@ import { api } from '../api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
 export default function SiteContent() {
+  return (
+    <div>
+      <Link to="/" className="backlink">
+        ← Voltar para Clientes
+      </Link>
+      <h1>Conteúdo do Site</h1>
+      <SiteContentPanel />
+    </div>
+  );
+}
+
+export function SiteContentPanel() {
   const { user } = useAuth();
   const canWrite = user.role === 'admin' || user.role === 'editor';
   const [content, setContent] = useState({ title: '', subtitle: '', description: '', logo_url: '' });
@@ -60,10 +72,6 @@ export default function SiteContent() {
 
   return (
     <div>
-      <Link to="/" className="backlink">
-        ← Voltar para Clientes
-      </Link>
-      <h1>Conteúdo do Site</h1>
       <form onSubmit={handleSave} className="form">
         <fieldset disabled={!canWrite}>
           <label>

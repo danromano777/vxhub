@@ -5,6 +5,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { pool } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
+import { extFilter, IMAGE_ONLY_EXTS, BLOCK_FILE_EXTS } from '../lib/uploadFilter.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const logosDir = path.join(__dirname, '..', '..', 'uploads', 'logos');
@@ -12,7 +13,7 @@ const blocksDir = path.join(__dirname, '..', '..', 'uploads', 'blocks');
 fs.mkdirSync(logosDir, { recursive: true });
 fs.mkdirSync(blocksDir, { recursive: true });
 
-function makeUploader(dir, prefix) {
+function makeUploader(dir, prefix, allowedExts) {
   return multer({
     storage: multer.diskStorage({
       destination: dir,
@@ -22,11 +23,12 @@ function makeUploader(dir, prefix) {
       },
     }),
     limits: { fileSize: 10 * 1024 * 1024 },
+    fileFilter: extFilter(allowedExts),
   });
 }
 
-const uploadLogo = makeUploader(logosDir, 'logo');
-const uploadBlock = makeUploader(blocksDir, 'block');
+const uploadLogo = makeUploader(logosDir, 'logo', IMAGE_ONLY_EXTS);
+const uploadBlock = makeUploader(blocksDir, 'block', BLOCK_FILE_EXTS);
 
 const router = Router();
 router.use(requireAuth);
@@ -36,13 +38,17 @@ const CAN_WRITE = requireRole('admin', 'editor');
 const BRAND_FIELDS = [
   'slug', 'name', 'display_html', 'brand_group', 'filter_key', 'description',
   'grad_a', 'grad_b', 'grad_c', 'grad_d', 'grad_base', 'grad_glow', 'grad_pale', 'logo_url',
-  'sort_order',
+  'logo_offset_x', 'sort_order',
 ];
 
 function brandValues(body) {
   return BRAND_FIELDS.map((f) => {
     if (f === 'grad_pale') return !!body[f];
     if (f === 'sort_order') return body[f] || 0;
+    if (f === 'logo_offset_x') {
+      const v = body[f];
+      return v === '' || v === null || v === undefined ? null : Number(v);
+    }
     return body[f] ?? '';
   });
 }
@@ -75,19 +81,29 @@ router.get('/:id', async (req, res) => {
 });
 
 router.post('/', CAN_WRITE, async (req, res) => {
-  const [result] = await pool.query(
-    `INSERT INTO brands (${BRAND_FIELDS.join(',')}) VALUES (${BRAND_FIELDS.map(() => '?').join(',')})`,
-    brandValues(req.body)
-  );
-  res.status(201).json({ id: result.insertId });
+  try {
+    const [result] = await pool.query(
+      `INSERT INTO brands (${BRAND_FIELDS.join(',')}) VALUES (${BRAND_FIELDS.map(() => '?').join(',')})`,
+      brandValues(req.body)
+    );
+    res.status(201).json({ id: result.insertId });
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Esse slug já está em uso por outra marca' });
+    throw err;
+  }
 });
 
 router.put('/:id', CAN_WRITE, async (req, res) => {
-  await pool.query(
-    `UPDATE brands SET ${BRAND_FIELDS.map((f) => `${f}=?`).join(',')} WHERE id=?`,
-    [...brandValues(req.body), req.params.id]
-  );
-  res.json({ ok: true });
+  try {
+    await pool.query(
+      `UPDATE brands SET ${BRAND_FIELDS.map((f) => `${f}=?`).join(',')} WHERE id=?`,
+      [...brandValues(req.body), req.params.id]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Esse slug já está em uso por outra marca' });
+    throw err;
+  }
 });
 
 router.delete('/:id', CAN_WRITE, async (req, res) => {
