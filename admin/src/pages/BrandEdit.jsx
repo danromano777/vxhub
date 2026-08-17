@@ -7,6 +7,7 @@ const emptyBrand = {
   slug: '', name: '', display_html: '', brand_group: '', filter_key: '', description: '',
   grad_a: '#C4FF4D', grad_b: '#18E0C8', grad_c: '#05463F', grad_d: '#E6FF9A',
   grad_base: '#07261f', grad_glow: 'rgba(196,255,77,.45)', grad_pale: false, logo_url: '',
+  logo_offset_x: null,
   sort_order: 0,
 };
 
@@ -114,6 +115,49 @@ export default function BrandEdit() {
               </div>
             )}
           </div>
+
+          {brand.logo_url && (
+            <div className="logo-offset">
+              <label>
+                Ajuste manual de centralização horizontal
+                <div className="logo-offset__row">
+                  <input
+                    type="range"
+                    min={-20}
+                    max={20}
+                    step={0.5}
+                    value={brand.logo_offset_x ?? 0}
+                    onChange={(e) => set('logo_offset_x', Number(e.target.value))}
+                  />
+                  <span className="logo-offset__value">
+                    {brand.logo_offset_x === null || brand.logo_offset_x === undefined
+                      ? 'Automático'
+                      : `${Number(brand.logo_offset_x) > 0 ? '+' : ''}${brand.logo_offset_x}%`}
+                  </span>
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    onClick={() => set('logo_offset_x', null)}
+                    disabled={brand.logo_offset_x === null || brand.logo_offset_x === undefined}
+                  >
+                    Redefinir p/ automático
+                  </button>
+                </div>
+              </label>
+              <p className="hint">
+                Use quando a centralização automática não ficar perfeita (logos com elementos gráficos
+                decorativos). Negativo move o logo para a esquerda, positivo para a direita.
+              </p>
+              <div className="logo-offset__preview">
+                <div className="logo-offset__guide" />
+                <img
+                  src={brand.logo_url}
+                  alt=""
+                  style={{ transform: `translateX(${brand.logo_offset_x || 0}%)` }}
+                />
+              </div>
+            </div>
+          )}
 
           <h3>Gradiente do card</h3>
           <div className="grid2">

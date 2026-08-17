@@ -122,6 +122,21 @@ button { font-family: inherit; }
 }
 .client-logo:hover .client-logo__upload { opacity: 1; }
 .client-logo__upload input { display: none; }
+.hint { color: var(--muted); font-size: 12px; margin: 4px 0 0; }
+.logo-offset { margin: 4px 0 18px; }
+.logo-offset__row { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
+.logo-offset__row input[type="range"] { flex: 1; }
+.logo-offset__value { min-width: 74px; font-variant-numeric: tabular-nums; color: var(--muted); font-size: 13px; }
+.logo-offset__preview {
+  position: relative; width: 180px; height: 120px; margin-top: 12px; border-radius: 12px; overflow: hidden;
+  background: linear-gradient(135deg, var(--lime-soft), var(--turq-soft));
+  display: flex; align-items: center; justify-content: center;
+}
+.logo-offset__preview img { max-width: 78%; max-height: 70%; object-fit: contain; transition: transform .1s; }
+.logo-offset__guide {
+  position: absolute; top: 0; bottom: 0; left: 50%; width: 1px;
+  background: rgba(255, 255, 255, .5); pointer-events: none;
+}
 .client-name { font-weight: 600; margin-bottom: 2px; }
 .client-slug { color: var(--muted); font-size: 13px; }
 .client-card__actions { display: flex; align-items: center; gap: 8px; }

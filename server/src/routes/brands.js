@@ -36,13 +36,17 @@ const CAN_WRITE = requireRole('admin', 'editor');
 const BRAND_FIELDS = [
   'slug', 'name', 'display_html', 'brand_group', 'filter_key', 'description',
   'grad_a', 'grad_b', 'grad_c', 'grad_d', 'grad_base', 'grad_glow', 'grad_pale', 'logo_url',
-  'sort_order',
+  'logo_offset_x', 'sort_order',
 ];
 
 function brandValues(body) {
   return BRAND_FIELDS.map((f) => {
     if (f === 'grad_pale') return !!body[f];
     if (f === 'sort_order') return body[f] || 0;
+    if (f === 'logo_offset_x') {
+      const v = body[f];
+      return v === '' || v === null || v === undefined ? null : Number(v);
+    }
     return body[f] ?? '';
   });
 }
