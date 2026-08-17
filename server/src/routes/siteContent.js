@@ -5,6 +5,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { pool } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
+import { extFilter, IMAGE_ONLY_EXTS } from '../lib/uploadFilter.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const siteDir = path.join(__dirname, '..', '..', 'uploads', 'site');
@@ -16,6 +17,7 @@ const upload = multer({
     filename: (req, file, cb) => cb(null, `logo-${Date.now()}${path.extname(file.originalname).toLowerCase()}`),
   }),
   limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: extFilter(IMAGE_ONLY_EXTS),
 });
 
 const router = Router();

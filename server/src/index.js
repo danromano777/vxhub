@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import 'express-async-errors';
+import helmet from 'helmet';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import authRoutes from './routes/auth.js';
@@ -13,6 +14,8 @@ import { seedAdmin } from './seed.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 
+// CSP desligado: index.html e o admin dependem de <script>/<style> inline sem nonce.
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
@@ -23,7 +26,8 @@ app.use('/api/site-content', siteContentRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);
-  res.status(500).json({ error: 'Erro interno do servidor' });
+  const status = err.status || 500;
+  res.status(status).json({ error: status < 500 ? err.message : 'Erro interno do servidor' });
 });
 
 const uploadsDir = path.join(__dirname, '..', 'uploads');

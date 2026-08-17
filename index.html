@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>vx.hub | Assets Source — VX Comunicação</title>
 <meta name="description" content="O hub de arquivos da VX. Templates, logos, cores, fontes e tudo o que sua marca precisa.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="vx.hub | Assets Source">
+<meta property="og:description" content="O hub de arquivos da VX. Templates, logos, cores, fontes e tudo o que sua marca precisa.">
+<meta property="og:image" content="/og-logo.png">
+<meta name="twitter:card" content="summary_large_image">
 <style>
 @font-face{font-family:"Herokid";src:url("/fonts/Herokid-Regular.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap}
 @font-face{font-family:"Herokid";src:url("/fonts/Herokid-SemiBold.woff2") format("woff2");font-weight:600;font-style:normal;font-display:swap}
@@ -489,7 +494,7 @@ function renderHome(){
   var tiles = BRANDS_LIST.map(function(b){
     var g=gradFor(b);
     var mark = b.logo_url
-      ? '<img class="mark-logo" src="'+esc(b.logo_url)+'" alt="'+esc(b.name)+'" data-offset="'+(b.logo_offset_x!=null?b.logo_offset_x:'')+'">'
+      ? '<img class="mark-logo" src="'+esc(b.logo_url)+'" alt="'+esc(b.name)+'" loading="lazy" data-offset="'+(b.logo_offset_x!=null?b.logo_offset_x:'')+'">'
       : '<h2 class="mark">'+b.display_html+'</h2>';
     var searchBlob=esc((b.name+' '+b.brand_group+' '+b.filter_key).toLowerCase());
     return '<a class="tile'+(b.grad_pale?' is-pale':'')+'" href="#/marca/'+esc(b.slug)+'" data-group="'+esc(b.filter_key)+'" data-search="'+searchBlob+'" style="'+vars(g)+'">'+

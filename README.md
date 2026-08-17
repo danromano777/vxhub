@@ -103,12 +103,40 @@ O schema (`db/init/001_schema.sql`) cria as tabelas `users`, `brands`, `sections
 
 ## Painel admin
 
-O painel (`/admin`) tem 3 áreas:
-- **Clientes**: lista de marcas com logo (passe o mouse sobre o logo para trocar via upload), cores do gradiente e ações de editar/excluir.
-- **Seções**: visão agregada de todas as seções/blocos cadastrados por cliente.
+O painel (`/admin`) tem 3 abas, todas na mesma tela (sem navegar pra outra URL):
+- **Clientes**: lista de marcas com busca (nome/slug/grupo/filtro), filtros por Grupo e por Filtro, ordenação, logo (passe o mouse para trocar via upload) e ações de editar/excluir. "Editar cores" ajusta o gradiente do card (incluindo cor de fundo e o toggle "fundo claro").
+- **Conteúdo do Site**: título, subtítulo, descrição e logo da home pública.
 - **Usuários**: gestão de contas do painel (somente para admins).
 
-Dentro de cada cliente, a tela de **Seções** permite criar seções livremente ("+ Nova Seção") e adicionar blocos de qualquer tipo (imagem, imagem+link, vídeo, fonte, cor, PDF, link ou código) via o seletor "+ Bloco". Uploads de logo e de arquivos de bloco (imagem/fonte/vídeo) são salvos em `server/uploads/` (persistido via volume Docker `app_uploads` para sobreviver a rebuilds).
+Na edição de cada cliente (✎), Grupo e Filtro são escolhidos num menu suspenso com os valores já em uso (ou "+ Novo…" para cadastrar um valor novo), o logo aceita URL ou upload direto da máquina, e há um ajuste manual de centralização horizontal do logo para os casos em que a centralização automática não fica perfeita.
+
+Dentro de cada cliente, a tela de **Seções** ("📂 Seções") permite criar seções livremente ("+ Nova Seção"), renomeá-las (✎) e adicionar blocos de qualquer tipo (imagem, imagem+link, vídeo, fonte, cor, PDF, link ou código) via o seletor "+ Bloco"; editar/excluir um bloco existente é feito passando o mouse sobre o próprio thumbnail dele. Uploads de logo e de arquivos de bloco (imagem/fonte/vídeo) são salvos em `server/uploads/` (persistido via volume Docker `app_uploads` para sobreviver a rebuilds) e só aceitam extensões de imagem/fonte/vídeo conhecidas.
+
+## Backup e restauração do banco
+
+Com a stack rodando (`docker compose --profile app up -d`), para gerar um backup:
+
+```bash
+docker compose exec db mysqldump -u root -p"$MYSQL_ROOT_PASSWORD" --databases "$MYSQL_DATABASE" > backup.sql
+```
+
+Para restaurar (banco precisa já existir, mesmo que vazio):
+
+```bash
+docker compose exec -T db mysql -u root -p"$MYSQL_ROOT_PASSWORD" < backup.sql
+```
+
+No PowerShell, troque `$MYSQL_ROOT_PASSWORD`/`$MYSQL_DATABASE` pelos valores reais do seu `.env` (ou rode o comando a partir do WSL/Git Bash, onde a sintaxe acima funciona direto).
+
+## Esqueci a senha do admin
+
+Não existe fluxo de "esqueci minha senha" na tela de login. Para resetar, gere um novo hash bcrypt e atualize direto no banco:
+
+```bash
+docker compose exec app node -e "import('bcryptjs').then(b=>b.hash('nova_senha_aqui',10)).then(console.log)"
+docker compose exec db mysql -u root -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" \
+  -e "UPDATE users SET password_hash='<hash gerado acima>' WHERE email='seu@email.com';"
+```
 
 ## Deploy
 
