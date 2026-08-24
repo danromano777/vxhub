@@ -127,6 +127,18 @@ h1{margin:16px 0 0;font-family:var(--display);font-weight:700;font-size:clamp(28
         <input type="checkbox" id="transparentBg">
         Fundo transparente
       </label>
+      <div class="field">
+        <label>Ponto preto (escurece sombras/fundo) <span id="blackPointVal">60</span></label>
+        <input type="range" id="blackPoint" min="0" max="255" value="60" step="1">
+      </div>
+      <div class="field">
+        <label>Ponto branco (estoura luzes) <span id="whitePointVal">200</span></label>
+        <input type="range" id="whitePoint" min="0" max="255" value="200" step="1">
+      </div>
+      <div class="field">
+        <label>Contorno nas bordas <span id="edgeStrengthVal">55%</span></label>
+        <input type="range" id="edgeStrength" min="0" max="100" value="55" step="1">
+      </div>
       <div class="status" id="status"></div>
       <button class="btn" id="downloadBtn" disabled>⬇ Baixar PNG</button>
       <button class="btn btn--ghost" id="resetBtn" disabled>Trocar imagem</button>
@@ -144,6 +156,12 @@ var dotSizeVal = document.getElementById('dotSizeVal');
 var dotColorInput = document.getElementById('dotColor');
 var bgColorInput = document.getElementById('bgColor');
 var transparentBgInput = document.getElementById('transparentBg');
+var blackPointInput = document.getElementById('blackPoint');
+var blackPointVal = document.getElementById('blackPointVal');
+var whitePointInput = document.getElementById('whitePoint');
+var whitePointVal = document.getElementById('whitePointVal');
+var edgeStrengthInput = document.getElementById('edgeStrength');
+var edgeStrengthVal = document.getElementById('edgeStrengthVal');
 var downloadBtn = document.getElementById('downloadBtn');
 var resetBtn = document.getElementById('resetBtn');
 var statusEl = document.getElementById('status');
@@ -185,6 +203,9 @@ function render(){
     var dotColor = dotColorInput.value;
     var bgColor = bgColorInput.value;
     var transparent = transparentBgInput.checked;
+    var blackPoint = Number(blackPointInput.value);
+    var whitePoint = Math.max(blackPoint + 1, Number(whitePointInput.value));
+    var edgeStrength = Number(edgeStrengthInput.value);
 
     var srcData = sourceCanvas.getContext('2d').getImageData(0, 0, w, h).data;
 
@@ -197,11 +218,24 @@ function render(){
     }
     ctx.fillStyle = dotColor;
 
-    for(var y = 0; y < h; y += dotSize){
-      for(var x = 0; x < w; x += dotSize){
-        var sum = 0, count = 0;
-        var yMax = Math.min(y + dotSize, h);
+    // remapeia o brilho pelos pontos preto/branco (threshold/levels) antes de virar ponto:
+    // tudo abaixo do ponto preto vira 100% escuro, tudo acima do ponto branco vira 100% claro.
+    function levels(v){
+      if(v <= blackPoint) return 0;
+      if(v >= whitePoint) return 255;
+      return (v - blackPoint) / (whitePoint - blackPoint) * 255;
+    }
+
+    var cols = Math.ceil(w / dotSize), rows = Math.ceil(h / dotSize);
+    var cellRaw = new Float32Array(cols * rows);
+
+    for(var cy = 0; cy < rows; cy++){
+      var y = cy * dotSize;
+      var yMax = Math.min(y + dotSize, h);
+      for(var cx = 0; cx < cols; cx++){
+        var x = cx * dotSize;
         var xMax = Math.min(x + dotSize, w);
+        var sum = 0, count = 0;
         for(var yy = y; yy < yMax; yy++){
           for(var xx = x; xx < xMax; xx++){
             var i = (yy * w + xx) * 4;
@@ -209,7 +243,9 @@ function render(){
             count++;
           }
         }
-        var brightness = (sum / count) / 255; // 0 escuro .. 1 claro
+        var raw = sum / count;
+        cellRaw[cy * cols + cx] = raw;
+        var brightness = levels(raw) / 255; // 0 escuro .. 1 claro
         var radius = (1 - brightness) * (dotSize / 2) * 1.12;
         if(radius > 0.35){
           ctx.beginPath();
@@ -218,6 +254,30 @@ function render(){
         }
       }
     }
+
+    // mini borda: contorno claro nas transições de brilho mais fortes entre células vizinhas,
+    // desenhado com "lighten" pra só clarear (aparece nas sombras, quase some nas áreas já claras)
+    if(edgeStrength > 0){
+      var edgeThresh = 12 + (100 - edgeStrength) * 1.4;
+      var lineW = Math.max(1, dotSize * 0.18);
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighten';
+      ctx.fillStyle = 'rgba(255,255,255,' + Math.min(1, 0.55 + edgeStrength / 200) + ')';
+      for(var ey = 0; ey < rows; ey++){
+        for(var ex = 0; ex < cols; ex++){
+          var idx = ey * cols + ex;
+          var here = cellRaw[idx];
+          if(ex + 1 < cols && Math.abs(here - cellRaw[idx + 1]) > edgeThresh){
+            ctx.fillRect((ex + 1) * dotSize - lineW / 2, ey * dotSize, lineW, dotSize);
+          }
+          if(ey + 1 < rows && Math.abs(here - cellRaw[idx + cols]) > edgeThresh){
+            ctx.fillRect(ex * dotSize, (ey + 1) * dotSize - lineW / 2, dotSize, lineW);
+          }
+        }
+      }
+      ctx.restore();
+    }
+
     setStatus('');
   });
 }
@@ -245,6 +305,18 @@ dotColorInput.addEventListener('input', render);
 bgColorInput.addEventListener('input', render);
 transparentBgInput.addEventListener('change', function(){
   bgColorInput.disabled = transparentBgInput.checked;
+  render();
+});
+blackPointInput.addEventListener('input', function(){
+  blackPointVal.textContent = blackPointInput.value;
+  render();
+});
+whitePointInput.addEventListener('input', function(){
+  whitePointVal.textContent = whitePointInput.value;
+  render();
+});
+edgeStrengthInput.addEventListener('input', function(){
+  edgeStrengthVal.textContent = edgeStrengthInput.value + '%';
   render();
 });
 
