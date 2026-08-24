@@ -71,6 +71,13 @@ h1{margin:16px 0 0;font-family:var(--display);font-weight:700;font-size:clamp(28
 .field input[type="range"]{width:100%;accent-color:var(--mint)}
 .field input[type="color"]{width:100%;height:38px;border-radius:10px;border:1px solid var(--line);background:transparent;cursor:pointer;padding:2px}
 .checkbox{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--paper)}
+.presets{display:flex;flex-wrap:wrap;gap:8px;margin-top:-6px}
+.preset{
+  appearance:none;cursor:pointer;padding:8px 12px;border-radius:999px;border:1px solid var(--line);
+  background:transparent;font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:rgba(234,255,246,.7);
+  transition:border-color .2s,color .2s,background .2s;
+}
+.preset:hover{color:var(--paper);border-color:rgba(127,245,196,.4);background:rgba(127,245,196,.06)}
 .checkbox input{accent-color:var(--mint);width:16px;height:16px}
 .btn{
   appearance:none;cursor:pointer;border:0;padding:13px 20px;border-radius:999px;font-family:var(--mono);
@@ -112,8 +119,8 @@ h1{margin:16px 0 0;font-family:var(--display);font-weight:700;font-size:clamp(28
     <div class="panel">
       <h2>Ajustes</h2>
       <div class="field">
-        <label>Tamanho do ponto <span id="dotSizeVal">8px</span></label>
-        <input type="range" id="dotSize" min="2" max="24" value="8" step="1">
+        <label>Tamanho do ponto <span id="dotSizeVal">5px</span></label>
+        <input type="range" id="dotSize" min="2" max="24" value="5" step="1">
       </div>
       <div class="field">
         <label>Cor do ponto</label>
@@ -122,6 +129,11 @@ h1{margin:16px 0 0;font-family:var(--display);font-weight:700;font-size:clamp(28
       <div class="field">
         <label>Cor de fundo</label>
         <input type="color" id="bgColor" value="#ffffff">
+      </div>
+      <div class="presets">
+        <button type="button" class="preset" data-dot="#0d0d0d" data-bg="#ffffff">Preto &amp; branco</button>
+        <button type="button" class="preset" data-dot="#1a1109" data-bg="#f2ddc0">Sépia vintage</button>
+        <button type="button" class="preset" data-dot="#150e0b" data-bg="#e7c9a8">Poster quente</button>
       </div>
       <label class="checkbox">
         <input type="checkbox" id="transparentBg">
@@ -138,6 +150,10 @@ h1{margin:16px 0 0;font-family:var(--display);font-weight:700;font-size:clamp(28
       <div class="field">
         <label>Contorno nas bordas <span id="edgeStrengthVal">55%</span></label>
         <input type="range" id="edgeStrength" min="0" max="100" value="55" step="1">
+      </div>
+      <div class="field">
+        <label>Grão/textura <span id="grainVal">35%</span></label>
+        <input type="range" id="grain" min="0" max="100" value="35" step="1">
       </div>
       <div class="status" id="status"></div>
       <button class="btn" id="downloadBtn" disabled>⬇ Baixar PNG</button>
@@ -162,6 +178,9 @@ var whitePointInput = document.getElementById('whitePoint');
 var whitePointVal = document.getElementById('whitePointVal');
 var edgeStrengthInput = document.getElementById('edgeStrength');
 var edgeStrengthVal = document.getElementById('edgeStrengthVal');
+var grainInput = document.getElementById('grain');
+var grainVal = document.getElementById('grainVal');
+var presetBtns = document.querySelectorAll('.preset');
 var downloadBtn = document.getElementById('downloadBtn');
 var resetBtn = document.getElementById('resetBtn');
 var statusEl = document.getElementById('status');
@@ -278,8 +297,33 @@ function render(){
       ctx.restore();
     }
 
+    // grao/textura: ruido tileado em modo "overlay" - escurece um pouco mais o que ja e escuro
+    // e clareia o que ja e claro, quebrando o padrao mecanico dos pontos (efeito de grão de filme).
+    var grain = Number(grainInput.value);
+    if(grain > 0){
+      ctx.save();
+      ctx.globalCompositeOperation = 'overlay';
+      ctx.globalAlpha = grain / 100;
+      ctx.fillStyle = ctx.createPattern(makeNoiseTile(96), 'repeat');
+      ctx.fillRect(0, 0, w, h);
+      ctx.restore();
+    }
+
     setStatus('');
   });
+}
+
+function makeNoiseTile(size){
+  var t = document.createElement('canvas');
+  t.width = size; t.height = size;
+  var tctx = t.getContext('2d');
+  var id = tctx.createImageData(size, size);
+  for(var i = 0; i < id.data.length; i += 4){
+    var v = (Math.random() * 255) | 0;
+    id.data[i] = v; id.data[i + 1] = v; id.data[i + 2] = v; id.data[i + 3] = 255;
+  }
+  tctx.putImageData(id, 0, 0);
+  return t;
 }
 
 drop.addEventListener('click', function(){ fileInput.click(); });
@@ -318,6 +362,17 @@ whitePointInput.addEventListener('input', function(){
 edgeStrengthInput.addEventListener('input', function(){
   edgeStrengthVal.textContent = edgeStrengthInput.value + '%';
   render();
+});
+grainInput.addEventListener('input', function(){
+  grainVal.textContent = grainInput.value + '%';
+  render();
+});
+presetBtns.forEach(function(btn){
+  btn.addEventListener('click', function(){
+    dotColorInput.value = btn.dataset.dot;
+    bgColorInput.value = btn.dataset.bg;
+    render();
+  });
 });
 
 downloadBtn.addEventListener('click', function(){
