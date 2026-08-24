@@ -131,21 +131,21 @@ h1{margin:16px 0 0;font-family:var(--display);font-weight:700;font-size:clamp(28
         <input type="color" id="bgColor" value="#ffffff">
       </div>
       <div class="presets">
-        <button type="button" class="preset" data-dot="#0d0d0d" data-bg="#ffffff">Preto &amp; branco</button>
-        <button type="button" class="preset" data-dot="#1a1109" data-bg="#f2ddc0">Sépia vintage</button>
-        <button type="button" class="preset" data-dot="#150e0b" data-bg="#e7c9a8">Poster quente</button>
+        <button type="button" class="preset" data-dot="#0d0d0d" data-bg="#ffffff" data-black="85" data-white="178" data-edge="55" data-grain="20">Preto &amp; branco</button>
+        <button type="button" class="preset" data-dot="#1a1109" data-bg="#f2ddc0" data-black="100" data-white="163" data-edge="65" data-grain="45">Sépia vintage</button>
+        <button type="button" class="preset" data-dot="#150e0b" data-bg="#e7c9a8" data-black="95" data-white="170" data-edge="60" data-grain="35">Poster quente</button>
       </div>
       <label class="checkbox">
         <input type="checkbox" id="transparentBg">
         Fundo transparente
       </label>
       <div class="field">
-        <label>Ponto preto (escurece sombras/fundo) <span id="blackPointVal">60</span></label>
-        <input type="range" id="blackPoint" min="0" max="255" value="60" step="1">
+        <label>Ponto preto (escurece sombras/fundo) <span id="blackPointVal">85</span></label>
+        <input type="range" id="blackPoint" min="0" max="255" value="85" step="1">
       </div>
       <div class="field">
-        <label>Ponto branco (estoura luzes) <span id="whitePointVal">200</span></label>
-        <input type="range" id="whitePoint" min="0" max="255" value="200" step="1">
+        <label>Ponto branco (estoura luzes) <span id="whitePointVal">178</span></label>
+        <input type="range" id="whitePoint" min="0" max="255" value="178" step="1">
       </div>
       <div class="field">
         <label>Contorno nas bordas <span id="edgeStrengthVal">55%</span></label>
@@ -377,6 +377,22 @@ presetBtns.forEach(function(btn){
   btn.addEventListener('click', function(){
     dotColorInput.value = btn.dataset.dot;
     bgColorInput.value = btn.dataset.bg;
+    if(btn.dataset.black !== undefined){
+      blackPointInput.value = btn.dataset.black;
+      blackPointVal.textContent = btn.dataset.black;
+    }
+    if(btn.dataset.white !== undefined){
+      whitePointInput.value = btn.dataset.white;
+      whitePointVal.textContent = btn.dataset.white;
+    }
+    if(btn.dataset.edge !== undefined){
+      edgeStrengthInput.value = btn.dataset.edge;
+      edgeStrengthVal.textContent = btn.dataset.edge + '%';
+    }
+    if(btn.dataset.grain !== undefined){
+      grainInput.value = btn.dataset.grain;
+      grainVal.textContent = btn.dataset.grain + '%';
+    }
     render();
   });
 });
