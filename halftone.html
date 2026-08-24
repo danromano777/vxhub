@@ -139,11 +139,15 @@ h1{margin:16px 0 0;font-family:var(--display);font-weight:700;font-size:clamp(28
         <input type="checkbox" id="transparentBg">
         Fundo transparente
       </label>
-      <div class="field">
+      <label class="checkbox">
+        <input type="checkbox" id="thresholdToggle" checked>
+        Efeito Threshold (contraste vintage)
+      </label>
+      <div class="field" id="blackPointField">
         <label>Ponto preto (escurece sombras/fundo) <span id="blackPointVal">85</span></label>
         <input type="range" id="blackPoint" min="0" max="255" value="85" step="1">
       </div>
-      <div class="field">
+      <div class="field" id="whitePointField">
         <label>Ponto branco (estoura luzes) <span id="whitePointVal">178</span></label>
         <input type="range" id="whitePoint" min="0" max="255" value="178" step="1">
       </div>
@@ -172,6 +176,9 @@ var dotSizeVal = document.getElementById('dotSizeVal');
 var dotColorInput = document.getElementById('dotColor');
 var bgColorInput = document.getElementById('bgColor');
 var transparentBgInput = document.getElementById('transparentBg');
+var thresholdToggle = document.getElementById('thresholdToggle');
+var blackPointField = document.getElementById('blackPointField');
+var whitePointField = document.getElementById('whitePointField');
 var blackPointInput = document.getElementById('blackPoint');
 var blackPointVal = document.getElementById('blackPointVal');
 var whitePointInput = document.getElementById('whitePoint');
@@ -222,8 +229,9 @@ function render(){
     var dotColor = dotColorInput.value;
     var bgColor = bgColorInput.value;
     var transparent = transparentBgInput.checked;
-    var blackPoint = Number(blackPointInput.value);
-    var whitePoint = Math.max(blackPoint + 1, Number(whitePointInput.value));
+    var thresholdOn = thresholdToggle.checked;
+    var blackPoint = thresholdOn ? Number(blackPointInput.value) : 0;
+    var whitePoint = thresholdOn ? Math.max(blackPoint + 1, Number(whitePointInput.value)) : 255;
     var edgeStrength = Number(edgeStrengthInput.value);
 
     var srcData = sourceCanvas.getContext('2d').getImageData(0, 0, w, h).data;
@@ -357,6 +365,14 @@ transparentBgInput.addEventListener('change', function(){
   bgColorInput.disabled = transparentBgInput.checked;
   render();
 });
+thresholdToggle.addEventListener('change', function(){
+  var on = thresholdToggle.checked;
+  blackPointInput.disabled = !on;
+  whitePointInput.disabled = !on;
+  blackPointField.style.opacity = on ? '1' : '.4';
+  whitePointField.style.opacity = on ? '1' : '.4';
+  render();
+});
 blackPointInput.addEventListener('input', function(){
   blackPointVal.textContent = blackPointInput.value;
   render();
@@ -377,6 +393,13 @@ presetBtns.forEach(function(btn){
   btn.addEventListener('click', function(){
     dotColorInput.value = btn.dataset.dot;
     bgColorInput.value = btn.dataset.bg;
+    if(!thresholdToggle.checked){
+      thresholdToggle.checked = true;
+      blackPointInput.disabled = false;
+      whitePointInput.disabled = false;
+      blackPointField.style.opacity = '1';
+      whitePointField.style.opacity = '1';
+    }
     if(btn.dataset.black !== undefined){
       blackPointInput.value = btn.dataset.black;
       blackPointVal.textContent = btn.dataset.black;
