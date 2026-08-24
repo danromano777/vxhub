@@ -214,6 +214,15 @@ SELECT s.id, 'link_item', 'Canal Brasil (Swatch Color)',
   'https://drive.google.com/drive/folders/1GhTOVGfEIeNuvYf3-EgtOCm0TKHQEaTa?usp=sharing', 10
 FROM sections s JOIN brands b ON b.id = s.brand_id WHERE b.slug = 'canal-brasil' AND s.type = 'cores';
 
+-- Secao extra do Canal Brasil: Ferramentas (links uteis, ex. Halftone Studio)
+INSERT INTO sections (brand_id, title, type, sort_order)
+SELECT b.id, 'Ferramentas', 'ferramentas', 4
+FROM brands b WHERE b.slug = 'canal-brasil';
+
+INSERT INTO blocks (section_id, block_type, title, external_url, sort_order)
+SELECT s.id, 'link_item', 'Halftone Studio', '/halftone.html', 0
+FROM sections s JOIN brands b ON b.id = s.brand_id WHERE b.slug = 'canal-brasil' AND s.type = 'ferramentas';
+
 -- ---------------------------------------------------------------
 -- Blocos padrao para os demais clientes: logo principal na secao de Logos
 -- e a paleta de gradiente (grad_a-d) na secao de Cores
