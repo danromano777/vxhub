@@ -367,22 +367,42 @@ function render(){
 }
 
 // acha a região conectada às bordas da imagem que forma o fundo da foto e devolve uma máscara
-// por célula; retorna null se essa região não for clara (nada pra recortar). Em vez de exigir
-// que a borda inteira já seja clara de cara (uma sombra num canto derrubava a média e cancelava
-// o recorte inteiro), a gente floda a partir de TODAS as células da borda seguindo a cadeia de
-// vizinhos parecidos — isso acompanha gradientes/sombras suaves do fundo real de uma foto — e só
-// decide se "é claro" depois de ver o brilho médio da região que realmente ficou conectada.
+// por célula; retorna null se essa região não for clara (nada pra recortar).
+//
+// Fundo real de foto raramente é uma cor plana (tem sombra, vinheta, gradiente de luz), então
+// só seguir vizinho-a-vizinho não basta: numa foto com borda macia/desfocada (jpeg comum), a
+// cadeia de passos pequenos consegue "vazar" do branco até o sujeito escuro inteiro, porque cada
+// passo isolado é pequeno mesmo a distância total sendo grande. E só comparar com uma cor de
+// referência única (média das bordas) também não basta: um canto só um pouco mais sombreado já
+// reprovava e cancelava o recorte inteiro. A saída é exigir as duas coisas ao mesmo tempo: passo
+// curto entre vizinhos (acompanha gradiente suave) E distância total limitada até a cor média das
+// bordas (impede vazar pro sujeito através de uma borda macia).
 function computeBgMask(cols, rows, cellRaw, cellR, cellG, cellB){
-  var STEP_TOL = 34;
-  function colorDist(i, j){
-    var dr = cellR[i] - cellR[j], dg = cellG[i] - cellG[j], db = cellB[i] - cellB[j];
-    return Math.sqrt(dr * dr + dg * dg + db * db);
+  var sumR = 0, sumG = 0, sumB = 0, n0 = 0;
+  function addBorder(cx, cy){
+    var idx = cy * cols + cx;
+    sumR += cellR[idx]; sumG += cellG[idx]; sumB += cellB[idx]; n0++;
   }
+  for(var cx = 0; cx < cols; cx++){ addBorder(cx, 0); addBorder(cx, rows - 1); }
+  for(var cy = 0; cy < rows; cy++){ addBorder(0, cy); addBorder(cols - 1, cy); }
+  var refR = sumR / n0, refG = sumG / n0, refB = sumB / n0;
+
+  var STEP_TOL = 30;
+  var MAX_TOTAL = 95;
+  function dist(dr, dg, db){ return Math.sqrt(dr * dr + dg * dg + db * db); }
+  function distToRef(idx){
+    return dist(cellR[idx] - refR, cellG[idx] - refG, cellB[idx] - refB);
+  }
+  function distToCell(i, j){
+    return dist(cellR[i] - cellR[j], cellG[i] - cellG[j], cellB[i] - cellB[j]);
+  }
+
   var mask = new Uint8Array(cols * rows);
   var queue = [];
   function seed(cx, cy){
     var idx = cy * cols + cx;
     if(mask[idx]) return;
+    if(distToRef(idx) > MAX_TOTAL) return;
     mask[idx] = 1;
     queue.push(idx);
   }
@@ -390,7 +410,8 @@ function computeBgMask(cols, rows, cellRaw, cellR, cellG, cellB){
     if(cx < 0 || cy < 0 || cx >= cols || cy >= rows) return;
     var idx = cy * cols + cx;
     if(mask[idx]) return;
-    if(colorDist(fromIdx, idx) > STEP_TOL) return;
+    if(distToRef(idx) > MAX_TOTAL) return;
+    if(distToCell(fromIdx, idx) > STEP_TOL) return;
     mask[idx] = 1;
     queue.push(idx);
   }
