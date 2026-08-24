@@ -309,7 +309,7 @@ function render(){
     // fundo claro -> recorte: acha a região clara conectada às bordas da imagem (o fundo da foto)
     // e repinta só ela com uma cor escura sólida, deixando o sujeito com o halftone normal.
     if(doCutout){
-      var bgMask = computeBgMask(cols, rows, cellR, cellG, cellB);
+      var bgMask = computeBgMask(cols, rows, cellRaw, cellR, cellG, cellB);
       if(bgMask){
         ctx.fillStyle = darkBgColor;
         for(var my = 0; my < rows; my++){
@@ -366,44 +366,46 @@ function render(){
   });
 }
 
-// acha a região clara conectada às bordas da imagem (assume que é o fundo da foto) e devolve
-// uma máscara por célula; retorna null se a borda já não for clara (nada pra recortar).
-function computeBgMask(cols, rows, cellR, cellG, cellB){
-  var sumR = 0, sumG = 0, sumB = 0, n = 0;
-  function addBorder(cx, cy){
-    var idx = cy * cols + cx;
-    sumR += cellR[idx]; sumG += cellG[idx]; sumB += cellB[idx]; n++;
+// acha a região conectada às bordas da imagem que forma o fundo da foto e devolve uma máscara
+// por célula; retorna null se essa região não for clara (nada pra recortar). Em vez de exigir
+// que a borda inteira já seja clara de cara (uma sombra num canto derrubava a média e cancelava
+// o recorte inteiro), a gente floda a partir de TODAS as células da borda seguindo a cadeia de
+// vizinhos parecidos — isso acompanha gradientes/sombras suaves do fundo real de uma foto — e só
+// decide se "é claro" depois de ver o brilho médio da região que realmente ficou conectada.
+function computeBgMask(cols, rows, cellRaw, cellR, cellG, cellB){
+  var STEP_TOL = 34;
+  function colorDist(i, j){
+    var dr = cellR[i] - cellR[j], dg = cellG[i] - cellG[j], db = cellB[i] - cellB[j];
+    return Math.sqrt(dr * dr + dg * dg + db * db);
   }
-  for(var cx = 0; cx < cols; cx++){ addBorder(cx, 0); addBorder(cx, rows - 1); }
-  for(var cy = 0; cy < rows; cy++){ addBorder(0, cy); addBorder(cols - 1, cy); }
-  var refR = sumR / n, refG = sumG / n, refB = sumB / n;
-  var refBrightness = 0.299 * refR + 0.587 * refG + 0.114 * refB;
-  if(refBrightness < 170) return null;
-
-  var TOL = 40;
-  var candidate = new Uint8Array(cols * rows);
-  for(var i = 0; i < cols * rows; i++){
-    var dr = cellR[i] - refR, dg = cellG[i] - refG, db = cellB[i] - refB;
-    candidate[i] = Math.sqrt(dr * dr + dg * dg + db * db) <= TOL ? 1 : 0;
-  }
-
   var mask = new Uint8Array(cols * rows);
   var queue = [];
-  function tryPush(cx, cy){
-    if(cx < 0 || cy < 0 || cx >= cols || cy >= rows) return;
+  function seed(cx, cy){
     var idx = cy * cols + cx;
-    if(mask[idx] || !candidate[idx]) return;
+    if(mask[idx]) return;
     mask[idx] = 1;
     queue.push(idx);
   }
-  for(var bx = 0; bx < cols; bx++){ tryPush(bx, 0); tryPush(bx, rows - 1); }
-  for(var by = 0; by < rows; by++){ tryPush(0, by); tryPush(cols - 1, by); }
+  function tryPush(fromIdx, cx, cy){
+    if(cx < 0 || cy < 0 || cx >= cols || cy >= rows) return;
+    var idx = cy * cols + cx;
+    if(mask[idx]) return;
+    if(colorDist(fromIdx, idx) > STEP_TOL) return;
+    mask[idx] = 1;
+    queue.push(idx);
+  }
+  for(var bx = 0; bx < cols; bx++){ seed(bx, 0); seed(bx, rows - 1); }
+  for(var by = 0; by < rows; by++){ seed(0, by); seed(cols - 1, by); }
   var qi = 0;
   while(qi < queue.length){
     var idx2 = queue[qi++];
     var qx = idx2 % cols, qy = (idx2 / cols) | 0;
-    tryPush(qx + 1, qy); tryPush(qx - 1, qy); tryPush(qx, qy + 1); tryPush(qx, qy - 1);
+    tryPush(idx2, qx + 1, qy); tryPush(idx2, qx - 1, qy); tryPush(idx2, qx, qy + 1); tryPush(idx2, qx, qy - 1);
   }
+
+  var sum = 0, n = 0;
+  for(var i = 0; i < mask.length; i++){ if(mask[i]){ sum += cellRaw[i]; n++; } }
+  if(n === 0 || sum / n < 170) return null;
   return mask;
 }
 
