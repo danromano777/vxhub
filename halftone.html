@@ -229,9 +229,12 @@ var statusEl = document.getElementById('status');
 var sourceCanvas = null; // holds the original image, scaled down for processing
 var MAX_DIM = 1400;
 
-// pincel manual: marcação por célula que sobrepõe a detecção automática de fundo.
-// 0 = usa a detecção automática, 1 = força "é fundo", 2 = força "não é fundo".
-var manualMask = null;
+// pincel manual: marcação por célula que se soma à detecção automática de fundo.
+// manualMarkStrength (0..1, com esmaecimento suave nas bordas do traço) = "quanto essa
+// célula deveria ser tratada como fundo"; manualProtect (booleano, sem esmaecimento) =
+// "nunca vira fundo", sempre vence sobre a marcação e sobre a detecção automática.
+var manualMarkStrength = null;
+var manualProtect = null;
 var paintMode = 1;
 var isPainting = false;
 var lastDotSize = 0, lastCols = 0, lastRows = 0;
@@ -248,7 +251,8 @@ function loadFile(file){
     sourceCanvas = document.createElement('canvas');
     sourceCanvas.width = w; sourceCanvas.height = h;
     sourceCanvas.getContext('2d').drawImage(img, 0, 0, w, h);
-    manualMask = null;
+    manualMarkStrength = null;
+    manualProtect = null;
     drop.hidden = true;
     outCanvas.hidden = false;
     downloadBtn.disabled = false;
@@ -305,8 +309,9 @@ function render(){
 
     // o pincel manual guarda marcações por célula; se a imagem ou o tamanho do ponto mudou,
     // a grade de células mudou de tamanho junto, então as marcações antigas não valem mais.
-    if(!manualMask || manualMask.length !== cols * rows){
-      manualMask = new Uint8Array(cols * rows);
+    if(!manualMarkStrength || manualMarkStrength.length !== cols * rows){
+      manualMarkStrength = new Float32Array(cols * rows);
+      manualProtect = new Uint8Array(cols * rows);
     }
     lastDotSize = dotSize; lastCols = cols; lastRows = rows;
 
@@ -346,9 +351,12 @@ function render(){
     }
 
     // fundo claro -> recorte: acha a região clara conectada às bordas da imagem (o fundo da foto)
-    // e repinta só ela com uma cor escura sólida, deixando o sujeito com o halftone normal.
-    // O pincel manual sobrepõe essa detecção: célula marcada "1" vira fundo mesmo se a detecção
-    // não pegou; marcada "2" nunca vira fundo, mesmo se a detecção (erradamente) pegou.
+    // e repinta essa área com a cor escura, deixando o sujeito com o halftone normal. A força por
+    // célula (0..1) soma a detecção automática (sempre 1) com o pincel manual (esmaecido nas
+    // bordas do traço) — célula com força 1 vira preenchimento sólido igual antes, mas uma célula
+    // parcial (borda do traço do pincel) desenha um ponto do tamanho da força, com o mesmo raio da
+    // curva normal de pontos do halftone, pra parecer um esmaecimento de pontos e não um corte reto.
+    // "Apagar marca" sempre protege a célula, derrubando a força pra 0 independente do resto.
     if(doCutout){
       var autoMask = computeBgMask(cols, rows, cellRaw, cellR, cellG, cellB);
       var painted = false;
@@ -358,13 +366,21 @@ function render(){
         var myMax = Math.min(my_ + dotSize, h);
         for(var mx = 0; mx < cols; mx++){
           var midx = my * cols + mx;
-          var manual = manualMask[midx];
-          var isBg = manual === 2 ? false : (manual === 1 ? true : !!(autoMask && autoMask[midx]));
-          if(!isBg) continue;
+          var bgStrength = manualProtect[midx] ? 0 : Math.max(autoMask && autoMask[midx] ? 1 : 0, manualMarkStrength[midx]);
+          if(bgStrength <= 0.02) continue;
           painted = true;
           var mx_ = mx * dotSize;
           var mxMax = Math.min(mx_ + dotSize, w);
-          ctx.fillRect(mx_, my_, mxMax - mx_, myMax - my_);
+          if(bgStrength >= 0.97){
+            ctx.fillRect(mx_, my_, mxMax - mx_, myMax - my_);
+          } else {
+            var bgRadius = bgStrength * (dotSize / 2) * 1.12;
+            if(bgRadius > 0.35){
+              ctx.beginPath();
+              ctx.arc(mx_ + dotSize / 2, my_ + dotSize / 2, bgRadius, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
         }
       }
       if(!painted){
@@ -537,14 +553,18 @@ function setPaintMode(mode){
 brushModeAddBtn.addEventListener('click', function(){ setPaintMode(1); });
 brushModeEraseBtn.addEventListener('click', function(){ setPaintMode(2); });
 brushClearBtn.addEventListener('click', function(){
-  if(manualMask) manualMask.fill(0);
+  if(manualMarkStrength) manualMarkStrength.fill(0);
+  if(manualProtect) manualProtect.fill(0);
   render();
 });
 
-// pincel: converte a posição do ponteiro (em pixels de tela) pra células da grade do halftone
-// e marca todas as células dentro do raio do pincel com o modo atual (marcar/apagar).
+// pincel: converte a posição do ponteiro (em pixels de tela) pra células da grade do halftone e
+// pinta as células dentro do raio do pincel. No modo "marcar", a força cai suavemente da borda do
+// traço pro centro do pincel pra fora (smoothstep) — é isso que faz o traço virar um esmaecimento
+// de pontos em vez de um bloco reto quando renderizado. "Apagar" protege de forma binária (sem
+// esmaecimento), já que a intenção ali é garantir que a célula nunca vire fundo.
 function paintAt(clientX, clientY){
-  if(!sourceCanvas || !cutoutToggle.checked || !manualMask || !lastCols || !lastRows) return;
+  if(!sourceCanvas || !cutoutToggle.checked || !manualMarkStrength || !lastCols || !lastRows) return;
   var rect = outCanvas.getBoundingClientRect();
   if(rect.width === 0) return;
   var scale = outCanvas.width / rect.width;
@@ -561,9 +581,17 @@ function paintAt(clientX, clientY){
   for(var cy = cyMin; cy <= cyMax; cy++){
     for(var cx = cxMin; cx <= cxMax; cx++){
       var dx = (cx + 0.5) - ccx, dy = (cy + 0.5) - ccy;
-      if(dx * dx + dy * dy > cellRadius * cellRadius) continue;
+      var dist = Math.sqrt(dx * dx + dy * dy);
+      if(dist > cellRadius) continue;
       var idx = cy * lastCols + cx;
-      if(manualMask[idx] !== paintMode){ manualMask[idx] = paintMode; changed = true; }
+      if(paintMode === 2){
+        if(!manualProtect[idx]){ manualProtect[idx] = 1; manualMarkStrength[idx] = 0; changed = true; }
+      } else {
+        var t = 1 - dist / cellRadius; // 0 na borda do pincel .. 1 no centro
+        var falloff = t * t * (3 - 2 * t); // smoothstep
+        if(manualProtect[idx]){ manualProtect[idx] = 0; changed = true; }
+        if(falloff > manualMarkStrength[idx]){ manualMarkStrength[idx] = falloff; changed = true; }
+      }
     }
   }
   if(changed) render();
@@ -644,7 +672,8 @@ downloadBtn.addEventListener('click', function(){
 
 resetBtn.addEventListener('click', function(){
   sourceCanvas = null;
-  manualMask = null;
+  manualMarkStrength = null;
+  manualProtect = null;
   outCanvas.hidden = true;
   drop.hidden = false;
   downloadBtn.disabled = true;
