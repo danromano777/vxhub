@@ -157,7 +157,9 @@ h1{margin:16px 0 0;font-family:var(--display);font-weight:700;font-size:clamp(28
       </div>
       <div class="field" id="brushSection">
         <label>Pincel manual <span id="brushSizeVal">40px</span></label>
-        <input type="range" id="brushSize" min="10" max="120" value="40" step="2">
+        <input type="range" id="brushSize" min="10" max="400" value="40" step="5">
+        <label>Continuidade do pincel <span id="brushSoftnessVal">100%</span></label>
+        <input type="range" id="brushSoftness" min="0" max="100" value="100" step="5">
         <div class="presets">
           <button type="button" class="brush-btn brush-btn--active" id="brushModeAdd">✎ Marcar fundo</button>
           <button type="button" class="brush-btn" id="brushModeErase">⌫ Apagar marca</button>
@@ -208,6 +210,8 @@ var darkBgColorInput = document.getElementById('darkBgColor');
 var brushSection = document.getElementById('brushSection');
 var brushSizeInput = document.getElementById('brushSize');
 var brushSizeVal = document.getElementById('brushSizeVal');
+var brushSoftnessInput = document.getElementById('brushSoftness');
+var brushSoftnessVal = document.getElementById('brushSoftnessVal');
 var brushModeAddBtn = document.getElementById('brushModeAdd');
 var brushModeEraseBtn = document.getElementById('brushModeErase');
 var brushClearBtn = document.getElementById('brushClearBtn');
@@ -558,25 +562,21 @@ brushClearBtn.addEventListener('click', function(){
   render();
 });
 
-// pincel: converte a posição do ponteiro (em pixels de tela) pra células da grade do halftone e
-// pinta as células dentro do raio do pincel. No modo "marcar", a força cai suavemente da borda do
-// traço pro centro do pincel pra fora (smoothstep) — é isso que faz o traço virar um esmaecimento
-// de pontos em vez de um bloco reto quando renderizado. "Apagar" protege de forma binária (sem
-// esmaecimento), já que a intenção ali é garantir que a célula nunca vire fundo.
-function paintAt(clientX, clientY){
-  if(!sourceCanvas || !cutoutToggle.checked || !manualMarkStrength || !lastCols || !lastRows) return;
-  var rect = outCanvas.getBoundingClientRect();
-  if(rect.width === 0) return;
-  var scale = outCanvas.width / rect.width;
-  var px = (clientX - rect.left) * scale;
-  var py = (clientY - rect.top) * scale;
-  var pixelRadius = (Number(brushSizeInput.value) / 2) * scale;
-  var cellRadius = Math.max(1, pixelRadius / lastDotSize);
+// carimba um único "dab" do pincel (em pixels do canvas) nas células dentro do raio. No modo
+// "marcar", a força cai suavemente da borda do pincel pro centro (smoothstep) — a "Continuidade"
+// controla quanto do raio fica com força total (núcleo sólido) antes do esmaecimento começar:
+// 100% = gradiente do centro até a borda, 0% = quase um círculo sólido com uma borda fina esmaecida.
+// "Apagar" protege de forma binária (sem esmaecimento), já que a intenção é garantir que a célula
+// nunca vire fundo.
+var lastPaintPx = null, lastPaintPy = null;
+function stampAt(px, py, cellRadius){
   var ccx = px / lastDotSize, ccy = py / lastDotSize;
   var cxMin = Math.max(0, Math.floor(ccx - cellRadius));
   var cxMax = Math.min(lastCols - 1, Math.ceil(ccx + cellRadius));
   var cyMin = Math.max(0, Math.floor(ccy - cellRadius));
   var cyMax = Math.min(lastRows - 1, Math.ceil(ccy + cellRadius));
+  var softness = Number(brushSoftnessInput.value) / 100;
+  var coreRadius = cellRadius * (1 - softness);
   var changed = false;
   for(var cy = cyMin; cy <= cyMax; cy++){
     for(var cx = cxMin; cx <= cxMax; cx++){
@@ -587,18 +587,57 @@ function paintAt(clientX, clientY){
       if(paintMode === 2){
         if(!manualProtect[idx]){ manualProtect[idx] = 1; manualMarkStrength[idx] = 0; changed = true; }
       } else {
-        var t = 1 - dist / cellRadius; // 0 na borda do pincel .. 1 no centro
-        var falloff = t * t * (3 - 2 * t); // smoothstep
+        var falloff;
+        if(dist <= coreRadius){
+          falloff = 1;
+        } else {
+          var t = 1 - (dist - coreRadius) / Math.max(1, cellRadius - coreRadius);
+          falloff = t * t * (3 - 2 * t); // smoothstep
+        }
         if(manualProtect[idx]){ manualProtect[idx] = 0; changed = true; }
         if(falloff > manualMarkStrength[idx]){ manualMarkStrength[idx] = falloff; changed = true; }
       }
     }
   }
+  return changed;
+}
+// converte a posição do ponteiro (em pixels de tela) pra pixels do canvas e, se o ponteiro já
+// vinha pintando, interpola vários carimbos entre o ponto anterior e o atual — sem isso, um
+// arrasto rápido do mouse (o navegador não dispara pointermove a cada pixel) deixava buracos
+// entre os carimbos e o traço virava uma sequência de "bolas" soltas em vez de um traço contínuo.
+function paintAt(clientX, clientY){
+  if(!sourceCanvas || !cutoutToggle.checked || !manualMarkStrength || !lastCols || !lastRows) return;
+  var rect = outCanvas.getBoundingClientRect();
+  if(rect.width === 0) return;
+  var scale = outCanvas.width / rect.width;
+  var px = (clientX - rect.left) * scale;
+  var py = (clientY - rect.top) * scale;
+  var pixelRadius = (Number(brushSizeInput.value) / 2) * scale;
+  var cellRadius = Math.max(1, pixelRadius / lastDotSize);
+
+  var changed = false;
+  if(lastPaintPx === null){
+    changed = stampAt(px, py, cellRadius);
+  } else {
+    var dx = px - lastPaintPx, dy = py - lastPaintPy;
+    var dist = Math.sqrt(dx * dx + dy * dy);
+    var step = Math.max(2, pixelRadius * 0.35);
+    var steps = Math.max(1, Math.ceil(dist / step));
+    for(var i = 1; i <= steps; i++){
+      var t = i / steps;
+      if(stampAt(lastPaintPx + dx * t, lastPaintPy + dy * t, cellRadius)) changed = true;
+    }
+  }
+  lastPaintPx = px; lastPaintPy = py;
   if(changed) render();
 }
+brushSoftnessInput.addEventListener('input', function(){
+  brushSoftnessVal.textContent = brushSoftnessInput.value + '%';
+});
 outCanvas.addEventListener('pointerdown', function(e){
   if(!cutoutToggle.checked) return;
   isPainting = true;
+  lastPaintPx = null; lastPaintPy = null;
   outCanvas.setPointerCapture(e.pointerId);
   paintAt(e.clientX, e.clientY);
 });
@@ -607,7 +646,7 @@ outCanvas.addEventListener('pointermove', function(e){
   paintAt(e.clientX, e.clientY);
 });
 ['pointerup', 'pointercancel', 'pointerleave'].forEach(function(evt){
-  outCanvas.addEventListener(evt, function(){ isPainting = false; });
+  outCanvas.addEventListener(evt, function(){ isPainting = false; lastPaintPx = null; lastPaintPy = null; });
 });
 // o slider "Efeito Threshold" é um atalho: escreve nos dois controles finos abaixo
 // (ponto preto/branco), que continuam ajustáveis manualmente na sequência.
