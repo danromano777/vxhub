@@ -139,6 +139,14 @@ h1{margin:16px 0 0;font-family:var(--display);font-weight:700;font-size:clamp(28
         <input type="checkbox" id="transparentBg">
         Fundo transparente
       </label>
+      <label class="checkbox">
+        <input type="checkbox" id="cutoutToggle">
+        Fundo claro → recortar e trocar por escuro
+      </label>
+      <div class="field" id="darkBgField">
+        <label>Cor do fundo escuro</label>
+        <input type="color" id="darkBgColor" value="#0a0a0a">
+      </div>
       <div class="field">
         <label>Efeito Threshold (contraste vintage) <span id="thresholdVal">65</span></label>
         <input type="range" id="threshold" min="0" max="100" value="65" step="1">
@@ -168,6 +176,9 @@ var dotSizeVal = document.getElementById('dotSizeVal');
 var dotColorInput = document.getElementById('dotColor');
 var bgColorInput = document.getElementById('bgColor');
 var transparentBgInput = document.getElementById('transparentBg');
+var cutoutToggle = document.getElementById('cutoutToggle');
+var darkBgField = document.getElementById('darkBgField');
+var darkBgColorInput = document.getElementById('darkBgColor');
 var thresholdInput = document.getElementById('threshold');
 var thresholdVal = document.getElementById('thresholdVal');
 var edgeStrengthInput = document.getElementById('edgeStrength');
@@ -222,6 +233,9 @@ function render(){
     var blackPoint = thresholdPct * 130;
     var whitePoint = Math.max(blackPoint + 1, 255 - thresholdPct * 110);
     var edgeStrength = Number(edgeStrengthInput.value);
+    var doCutout = cutoutToggle.checked && !transparent;
+    var darkBgColor = darkBgColorInput.value;
+    var cutoutHint = '';
 
     var srcData = sourceCanvas.getContext('2d').getImageData(0, 0, w, h).data;
 
@@ -244,6 +258,9 @@ function render(){
 
     var cols = Math.ceil(w / dotSize), rows = Math.ceil(h / dotSize);
     var cellRaw = new Float32Array(cols * rows);
+    var cellR = doCutout ? new Float32Array(cols * rows) : null;
+    var cellG = doCutout ? new Float32Array(cols * rows) : null;
+    var cellB = doCutout ? new Float32Array(cols * rows) : null;
 
     for(var cy = 0; cy < rows; cy++){
       var y = cy * dotSize;
@@ -251,16 +268,19 @@ function render(){
       for(var cx = 0; cx < cols; cx++){
         var x = cx * dotSize;
         var xMax = Math.min(x + dotSize, w);
-        var sum = 0, count = 0;
+        var sum = 0, count = 0, sumR = 0, sumG = 0, sumB = 0;
         for(var yy = y; yy < yMax; yy++){
           for(var xx = x; xx < xMax; xx++){
             var i = (yy * w + xx) * 4;
             sum += 0.299 * srcData[i] + 0.587 * srcData[i + 1] + 0.114 * srcData[i + 2];
+            if(doCutout){ sumR += srcData[i]; sumG += srcData[i + 1]; sumB += srcData[i + 2]; }
             count++;
           }
         }
         var raw = sum / count;
-        cellRaw[cy * cols + cx] = raw;
+        var idx0 = cy * cols + cx;
+        cellRaw[idx0] = raw;
+        if(doCutout){ cellR[idx0] = sumR / count; cellG[idx0] = sumG / count; cellB[idx0] = sumB / count; }
         var brightness = levels(raw) / 255; // 0 escuro .. 1 claro
         if(brightness <= 0.05){
           // sombra mais funda: preenche a célula inteira, sem textura de ponto nenhuma,
@@ -274,6 +294,27 @@ function render(){
             ctx.fill();
           }
         }
+      }
+    }
+
+    // fundo claro -> recorte: acha a região clara conectada às bordas da imagem (o fundo da foto)
+    // e repinta só ela com uma cor escura sólida, deixando o sujeito com o halftone normal.
+    if(doCutout){
+      var bgMask = computeBgMask(cols, rows, cellR, cellG, cellB);
+      if(bgMask){
+        ctx.fillStyle = darkBgColor;
+        for(var my = 0; my < rows; my++){
+          var my_ = my * dotSize;
+          var myMax = Math.min(my_ + dotSize, h);
+          for(var mx = 0; mx < cols; mx++){
+            if(!bgMask[my * cols + mx]) continue;
+            var mx_ = mx * dotSize;
+            var mxMax = Math.min(mx_ + dotSize, w);
+            ctx.fillRect(mx_, my_, mxMax - mx_, myMax - my_);
+          }
+        }
+      } else {
+        cutoutHint = 'Fundo já está escuro — nada para recortar.';
       }
     }
 
@@ -312,8 +353,49 @@ function render(){
       ctx.restore();
     }
 
-    setStatus('');
+    setStatus(cutoutHint);
   });
+}
+
+// acha a região clara conectada às bordas da imagem (assume que é o fundo da foto) e devolve
+// uma máscara por célula; retorna null se a borda já não for clara (nada pra recortar).
+function computeBgMask(cols, rows, cellR, cellG, cellB){
+  var sumR = 0, sumG = 0, sumB = 0, n = 0;
+  function addBorder(cx, cy){
+    var idx = cy * cols + cx;
+    sumR += cellR[idx]; sumG += cellG[idx]; sumB += cellB[idx]; n++;
+  }
+  for(var cx = 0; cx < cols; cx++){ addBorder(cx, 0); addBorder(cx, rows - 1); }
+  for(var cy = 0; cy < rows; cy++){ addBorder(0, cy); addBorder(cols - 1, cy); }
+  var refR = sumR / n, refG = sumG / n, refB = sumB / n;
+  var refBrightness = 0.299 * refR + 0.587 * refG + 0.114 * refB;
+  if(refBrightness < 170) return null;
+
+  var TOL = 40;
+  var candidate = new Uint8Array(cols * rows);
+  for(var i = 0; i < cols * rows; i++){
+    var dr = cellR[i] - refR, dg = cellG[i] - refG, db = cellB[i] - refB;
+    candidate[i] = Math.sqrt(dr * dr + dg * dg + db * db) <= TOL ? 1 : 0;
+  }
+
+  var mask = new Uint8Array(cols * rows);
+  var queue = [];
+  function tryPush(cx, cy){
+    if(cx < 0 || cy < 0 || cx >= cols || cy >= rows) return;
+    var idx = cy * cols + cx;
+    if(mask[idx] || !candidate[idx]) return;
+    mask[idx] = 1;
+    queue.push(idx);
+  }
+  for(var bx = 0; bx < cols; bx++){ tryPush(bx, 0); tryPush(bx, rows - 1); }
+  for(var by = 0; by < rows; by++){ tryPush(0, by); tryPush(cols - 1, by); }
+  var qi = 0;
+  while(qi < queue.length){
+    var idx2 = queue[qi++];
+    var qx = idx2 % cols, qy = (idx2 / cols) | 0;
+    tryPush(qx + 1, qy); tryPush(qx - 1, qy); tryPush(qx, qy + 1); tryPush(qx, qy - 1);
+  }
+  return mask;
 }
 
 function makeNoiseTile(size){
@@ -354,6 +436,8 @@ transparentBgInput.addEventListener('change', function(){
   bgColorInput.disabled = transparentBgInput.checked;
   render();
 });
+cutoutToggle.addEventListener('change', render);
+darkBgColorInput.addEventListener('input', render);
 thresholdInput.addEventListener('input', function(){
   thresholdVal.textContent = thresholdInput.value;
   render();
