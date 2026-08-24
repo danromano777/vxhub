@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Halftone Studio | vx.hub</title>
+<meta name="description" content="Converta qualquer imagem em um efeito halftone (padrão de pontos) direto no navegador.">
+<style>
+@font-face{font-family:"Herokid";src:url("/fonts/Herokid-Regular.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:"Herokid";src:url("/fonts/Herokid-SemiBold.woff2") format("woff2");font-weight:600;font-style:normal;font-display:swap}
+@font-face{font-family:"Herokid";src:url("/fonts/Herokid-Bold.woff2") format("woff2");font-weight:700;font-style:normal;font-display:swap}
+@font-face{font-family:"Herokid";src:url("/fonts/Herokid-ExtraBold.woff2") format("woff2");font-weight:800;font-style:normal;font-display:swap}
+:root{
+  --lime:#C4FF4D;--turq:#18E0C8;--mint:#7FF5C4;--paper:#EAFFF6;
+  --muted:rgba(234,255,246,.56);--line:rgba(127,245,196,.16);
+  --display:"Herokid","Arial Black",system-ui,sans-serif;
+  --body:"Herokid",system-ui,-apple-system,sans-serif;
+  --mono:"Herokid",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+body{
+  min-height:100vh;margin:0;color:var(--paper);font-family:var(--body);-webkit-font-smoothing:antialiased;
+  background:
+    radial-gradient(120% 80% at 6% -12%, rgba(196,255,77,.13), transparent 58%),
+    radial-gradient(100% 70% at 100% 8%, rgba(24,224,200,.15), transparent 60%),
+    radial-gradient(90% 60% at 50% 110%, rgba(24,224,200,.10), transparent 60%),
+    linear-gradient(165deg,#04160F 0%,#03110E 42%,#051D1A 100%);
+  background-attachment:fixed;
+}
+a{text-decoration:none;color:inherit}
+:focus-visible{outline:2px solid var(--lime);outline-offset:3px}
+
+.shell{max-width:1180px;margin:0 auto;padding:clamp(20px,3.4vw,52px)}
+.pagehead{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:clamp(24px,3.4vw,44px)}
+.back{display:inline-flex;align-items:center;gap:10px;font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:rgba(234,255,246,.5);transition:color .25s,gap .25s}
+.back:hover{color:var(--mint);gap:14px}
+.badge{
+  display:inline-flex;align-items:center;justify-content:center;line-height:1;padding:10px 16px 6px;border:1px solid var(--line);
+  border-radius:999px;background:rgba(127,245,196,.06);font-family:var(--mono);font-size:10px;
+  letter-spacing:.34em;text-transform:uppercase;color:var(--mint);
+}
+h1{margin:16px 0 0;font-family:var(--display);font-weight:700;font-size:clamp(28px,4vw,44px);letter-spacing:-.02em}
+.lede{margin:12px 0 0;max-width:60ch;font-size:15px;line-height:1.65;color:var(--muted)}
+
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:clamp(18px,2.4vw,32px);align-items:start}
+@media (max-width:840px){.grid{grid-template-columns:1fr}}
+
+.canvas-card{
+  border:1px solid var(--line);border-radius:20px;background:rgba(127,245,196,.04);
+  min-height:420px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;
+  background-image:linear-gradient(45deg,rgba(255,255,255,.03) 25%,transparent 25%,transparent 75%,rgba(255,255,255,.03) 75%),
+    linear-gradient(45deg,rgba(255,255,255,.03) 25%,transparent 25%,transparent 75%,rgba(255,255,255,.03) 75%);
+  background-size:24px 24px;background-position:0 0,12px 12px;
+}
+.canvas-card canvas{max-width:100%;max-height:70vh;display:block;border-radius:8px}
+.drop{
+  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  cursor:pointer;padding:32px;text-align:center;transition:background .2s;
+}
+.drop:hover,.drop.dragover{background:rgba(127,245,196,.06)}
+.drop__icon{width:52px;height:52px;border-radius:16px;background:rgba(127,245,196,.08);display:flex;align-items:center;justify-content:center;color:var(--mint)}
+.drop__title{font-family:var(--display);font-weight:600;font-size:17px}
+.drop__hint{font-size:13px;color:var(--muted)}
+.drop input{display:none}
+
+.panel{border:1px solid var(--line);border-radius:20px;background:rgba(127,245,196,.04);padding:22px;display:flex;flex-direction:column;gap:18px}
+.panel h2{margin:0;font-family:var(--display);font-weight:600;font-size:15px}
+.field{display:flex;flex-direction:column;gap:8px}
+.field label{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between}
+.field input[type="range"]{width:100%;accent-color:var(--mint)}
+.field input[type="color"]{width:100%;height:38px;border-radius:10px;border:1px solid var(--line);background:transparent;cursor:pointer;padding:2px}
+.checkbox{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--paper)}
+.checkbox input{accent-color:var(--mint);width:16px;height:16px}
+.btn{
+  appearance:none;cursor:pointer;border:0;padding:13px 20px;border-radius:999px;font-family:var(--mono);
+  font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;
+  background:linear-gradient(100deg,var(--lime),var(--turq));color:#04160F;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .2s,box-shadow .2s;
+}
+.btn:hover{transform:translateY(-2px);box-shadow:0 14px 30px -14px rgba(127,245,196,.6)}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.btn--ghost{background:transparent;border:1px solid var(--line);color:var(--paper)}
+.btn--ghost:hover{box-shadow:none;border-color:rgba(127,245,196,.4)}
+.status{font-size:12.5px;color:var(--muted);min-height:18px}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="pagehead">
+    <div>
+      <a class="back" href="/">← Assets Source</a>
+      <div class="badge">Ferramentas</div>
+      <h1>Halftone Studio</h1>
+      <p class="lede">Suba uma imagem e converta na hora para um efeito halftone (padrão de pontos), direto no navegador — nada é enviado pra nenhum servidor.</p>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="canvas-card" id="canvasCard">
+      <div class="drop" id="drop">
+        <div class="drop__icon">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><path d="M5 21h14"/></svg>
+        </div>
+        <div class="drop__title">Arraste uma imagem aqui</div>
+        <div class="drop__hint">ou clique para escolher um arquivo (PNG, JPG, WEBP)</div>
+        <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp,image/gif">
+      </div>
+      <canvas id="outCanvas" hidden></canvas>
+    </div>
+
+    <div class="panel">
+      <h2>Ajustes</h2>
+      <div class="field">
+        <label>Tamanho do ponto <span id="dotSizeVal">8px</span></label>
+        <input type="range" id="dotSize" min="2" max="24" value="8" step="1">
+      </div>
+      <div class="field">
+        <label>Cor do ponto</label>
+        <input type="color" id="dotColor" value="#000000">
+      </div>
+      <div class="field">
+        <label>Cor de fundo</label>
+        <input type="color" id="bgColor" value="#ffffff">
+      </div>
+      <label class="checkbox">
+        <input type="checkbox" id="transparentBg">
+        Fundo transparente
+      </label>
+      <div class="status" id="status"></div>
+      <button class="btn" id="downloadBtn" disabled>⬇ Baixar PNG</button>
+      <button class="btn btn--ghost" id="resetBtn" disabled>Trocar imagem</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var drop = document.getElementById('drop');
+var fileInput = document.getElementById('fileInput');
+var outCanvas = document.getElementById('outCanvas');
+var canvasCard = document.getElementById('canvasCard');
+var dotSizeInput = document.getElementById('dotSize');
+var dotSizeVal = document.getElementById('dotSizeVal');
+var dotColorInput = document.getElementById('dotColor');
+var bgColorInput = document.getElementById('bgColor');
+var transparentBgInput = document.getElementById('transparentBg');
+var downloadBtn = document.getElementById('downloadBtn');
+var resetBtn = document.getElementById('resetBtn');
+var statusEl = document.getElementById('status');
+
+var sourceCanvas = null; // holds the original image, scaled down for processing
+var MAX_DIM = 1400;
+
+function setStatus(msg){ statusEl.textContent = msg || ''; }
+
+function loadFile(file){
+  if(!file || file.type.indexOf('image/') !== 0){ setStatus('Escolha um arquivo de imagem.'); return; }
+  var img = new Image();
+  img.onload = function(){
+    var scale = Math.min(1, MAX_DIM / Math.max(img.naturalWidth, img.naturalHeight));
+    var w = Math.round(img.naturalWidth * scale);
+    var h = Math.round(img.naturalHeight * scale);
+    sourceCanvas = document.createElement('canvas');
+    sourceCanvas.width = w; sourceCanvas.height = h;
+    sourceCanvas.getContext('2d').drawImage(img, 0, 0, w, h);
+    drop.hidden = true;
+    outCanvas.hidden = false;
+    downloadBtn.disabled = false;
+    resetBtn.disabled = false;
+    render();
+  };
+  img.onerror = function(){ setStatus('Não consegui abrir essa imagem.'); };
+  var reader = new FileReader();
+  reader.onload = function(e){ img.src = e.target.result; };
+  reader.readAsDataURL(file);
+}
+
+function render(){
+  if(!sourceCanvas) return;
+  setStatus('Processando…');
+  // yield to the browser so the "Processando..." text can paint before the (synchronous) loop runs
+  requestAnimationFrame(function(){
+    var w = sourceCanvas.width, h = sourceCanvas.height;
+    var dotSize = Number(dotSizeInput.value);
+    var dotColor = dotColorInput.value;
+    var bgColor = bgColorInput.value;
+    var transparent = transparentBgInput.checked;
+
+    var srcData = sourceCanvas.getContext('2d').getImageData(0, 0, w, h).data;
+
+    outCanvas.width = w; outCanvas.height = h;
+    var ctx = outCanvas.getContext('2d');
+    ctx.clearRect(0, 0, w, h);
+    if(!transparent){
+      ctx.fillStyle = bgColor;
+      ctx.fillRect(0, 0, w, h);
+    }
+    ctx.fillStyle = dotColor;
+
+    for(var y = 0; y < h; y += dotSize){
+      for(var x = 0; x < w; x += dotSize){
+        var sum = 0, count = 0;
+        var yMax = Math.min(y + dotSize, h);
+        var xMax = Math.min(x + dotSize, w);
+        for(var yy = y; yy < yMax; yy++){
+          for(var xx = x; xx < xMax; xx++){
+            var i = (yy * w + xx) * 4;
+            sum += 0.299 * srcData[i] + 0.587 * srcData[i + 1] + 0.114 * srcData[i + 2];
+            count++;
+          }
+        }
+        var brightness = (sum / count) / 255; // 0 escuro .. 1 claro
+        var radius = (1 - brightness) * (dotSize / 2) * 1.12;
+        if(radius > 0.35){
+          ctx.beginPath();
+          ctx.arc(x + dotSize / 2, y + dotSize / 2, radius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+    setStatus('');
+  });
+}
+
+drop.addEventListener('click', function(){ fileInput.click(); });
+fileInput.addEventListener('change', function(){
+  if(fileInput.files[0]) loadFile(fileInput.files[0]);
+});
+['dragenter','dragover'].forEach(function(evt){
+  drop.addEventListener(evt, function(e){ e.preventDefault(); drop.classList.add('dragover'); });
+});
+['dragleave','drop'].forEach(function(evt){
+  drop.addEventListener(evt, function(e){ e.preventDefault(); drop.classList.remove('dragover'); });
+});
+drop.addEventListener('drop', function(e){
+  var file = e.dataTransfer.files && e.dataTransfer.files[0];
+  if(file) loadFile(file);
+});
+
+dotSizeInput.addEventListener('input', function(){
+  dotSizeVal.textContent = dotSizeInput.value + 'px';
+  render();
+});
+dotColorInput.addEventListener('input', render);
+bgColorInput.addEventListener('input', render);
+transparentBgInput.addEventListener('change', function(){
+  bgColorInput.disabled = transparentBgInput.checked;
+  render();
+});
+
+downloadBtn.addEventListener('click', function(){
+  if(!sourceCanvas) return;
+  var a = document.createElement('a');
+  a.download = 'halftone.png';
+  a.href = outCanvas.toDataURL('image/png');
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+});
+
+resetBtn.addEventListener('click', function(){
+  sourceCanvas = null;
+  outCanvas.hidden = true;
+  drop.hidden = false;
+  downloadBtn.disabled = true;
+  resetBtn.disabled = true;
+  fileInput.value = '';
+  setStatus('');
+});
+</script>
+</body>
+</html>
