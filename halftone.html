@@ -152,6 +152,14 @@ h1{margin:16px 0 0;font-family:var(--display);font-weight:700;font-size:clamp(28
         <input type="range" id="threshold" min="0" max="100" value="65" step="1">
       </div>
       <div class="field">
+        <label>Ponto preto (escurece sombras/fundo) <span id="blackPointVal">85</span></label>
+        <input type="range" id="blackPoint" min="0" max="255" value="85" step="1">
+      </div>
+      <div class="field">
+        <label>Ponto branco (estoura luzes) <span id="whitePointVal">178</span></label>
+        <input type="range" id="whitePoint" min="0" max="255" value="178" step="1">
+      </div>
+      <div class="field">
         <label>Contorno nas bordas <span id="edgeStrengthVal">55%</span></label>
         <input type="range" id="edgeStrength" min="0" max="100" value="55" step="1">
       </div>
@@ -181,6 +189,10 @@ var darkBgField = document.getElementById('darkBgField');
 var darkBgColorInput = document.getElementById('darkBgColor');
 var thresholdInput = document.getElementById('threshold');
 var thresholdVal = document.getElementById('thresholdVal');
+var blackPointInput = document.getElementById('blackPoint');
+var blackPointVal = document.getElementById('blackPointVal');
+var whitePointInput = document.getElementById('whitePoint');
+var whitePointVal = document.getElementById('whitePointVal');
 var edgeStrengthInput = document.getElementById('edgeStrength');
 var edgeStrengthVal = document.getElementById('edgeStrengthVal');
 var grainInput = document.getElementById('grain');
@@ -227,11 +239,8 @@ function render(){
     var dotColor = dotColorInput.value;
     var bgColor = bgColorInput.value;
     var transparent = transparentBgInput.checked;
-    // um único slider (0-100) controla o quanto o threshold "aperta" sombras/luzes:
-    // 0 = sem crush (halftone suave e natural), 100 = quase binário (contraste vintage máximo).
-    var thresholdPct = Number(thresholdInput.value) / 100;
-    var blackPoint = thresholdPct * 130;
-    var whitePoint = Math.max(blackPoint + 1, 255 - thresholdPct * 110);
+    var blackPoint = Number(blackPointInput.value);
+    var whitePoint = Math.max(blackPoint + 1, Number(whitePointInput.value));
     var edgeStrength = Number(edgeStrengthInput.value);
     var doCutout = cutoutToggle.checked && !transparent;
     var darkBgColor = darkBgColorInput.value;
@@ -438,8 +447,28 @@ transparentBgInput.addEventListener('change', function(){
 });
 cutoutToggle.addEventListener('change', render);
 darkBgColorInput.addEventListener('input', render);
+// o slider "Efeito Threshold" é um atalho: escreve nos dois controles finos abaixo
+// (ponto preto/branco), que continuam ajustáveis manualmente na sequência.
+function applyThreshold(t){
+  thresholdInput.value = t;
+  thresholdVal.textContent = t;
+  var bp = Math.round(t / 100 * 130);
+  var wp = Math.round(255 - t / 100 * 110);
+  blackPointInput.value = bp;
+  blackPointVal.textContent = bp;
+  whitePointInput.value = wp;
+  whitePointVal.textContent = wp;
+}
 thresholdInput.addEventListener('input', function(){
-  thresholdVal.textContent = thresholdInput.value;
+  applyThreshold(Number(thresholdInput.value));
+  render();
+});
+blackPointInput.addEventListener('input', function(){
+  blackPointVal.textContent = blackPointInput.value;
+  render();
+});
+whitePointInput.addEventListener('input', function(){
+  whitePointVal.textContent = whitePointInput.value;
   render();
 });
 edgeStrengthInput.addEventListener('input', function(){
@@ -455,8 +484,7 @@ presetBtns.forEach(function(btn){
     dotColorInput.value = btn.dataset.dot;
     bgColorInput.value = btn.dataset.bg;
     if(btn.dataset.threshold !== undefined){
-      thresholdInput.value = btn.dataset.threshold;
-      thresholdVal.textContent = btn.dataset.threshold;
+      applyThreshold(Number(btn.dataset.threshold));
     }
     if(btn.dataset.edge !== undefined){
       edgeStrengthInput.value = btn.dataset.edge;
