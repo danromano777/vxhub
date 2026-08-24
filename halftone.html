@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Halftone Studio | VX Comunicação</title>
+<meta name="description" content="Aplique o efeito halftone (trama de pontos) em qualquer imagem, com tratamento automático para manter todas as imagens no mesmo padrão.">
+<style>
+@font-face{font-family:"Herokid";src:url("/fonts/Herokid-Regular.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:"Herokid";src:url("/fonts/Herokid-SemiBold.woff2") format("woff2");font-weight:600;font-style:normal;font-display:swap}
+@font-face{font-family:"Herokid";src:url("/fonts/Herokid-Bold.woff2") format("woff2");font-weight:700;font-style:normal;font-display:swap}
+@font-face{font-family:"Herokid";src:url("/fonts/Herokid-ExtraBold.woff2") format("woff2");font-weight:800;font-style:normal;font-display:swap}
+
+:root{
+  --lime:#C4FF4D;--turq:#18E0C8;--mint:#7FF5C4;--paper:#EAFFF6;
+  --muted:rgba(234,255,246,.56);--line:rgba(127,245,196,.16);
+  --panel:rgba(127,245,196,.05);
+  --display:"Herokid","Arial Black",system-ui,sans-serif;
+  --body:"Herokid",system-ui,-apple-system,sans-serif;
+  --mono:"Herokid",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  min-height:100vh;color:var(--paper);font-family:var(--body);-webkit-font-smoothing:antialiased;
+  background:
+    radial-gradient(120% 80% at 6% -12%, rgba(196,255,77,.13), transparent 58%),
+    radial-gradient(100% 70% at 100% 8%, rgba(24,224,200,.15), transparent 60%),
+    radial-gradient(90% 60% at 50% 110%, rgba(24,224,200,.10), transparent 60%),
+    linear-gradient(165deg,#04160F 0%,#03110E 42%,#051D1A 100%);
+  background-attachment:fixed;
+}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--lime);outline-offset:3px}
+
+.shell{position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:clamp(18px,3vw,44px)}
+
+header.top{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:clamp(22px,3vw,36px)}
+.brand{display:flex;flex-direction:column;gap:10px}
+.brand a.back{font-family:var(--mono);font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--mint);text-decoration:none;opacity:.8}
+.brand a.back:hover{opacity:1}
+h1{margin:0;font-family:var(--display);font-weight:800;font-size:clamp(26px,3.4vw,40px);letter-spacing:-.02em}
+header.top p{margin:0;max-width:52ch;font-size:14.5px;line-height:1.65;color:var(--muted)}
+.badge{display:inline-flex;align-items:center;line-height:1;padding:9px 14px 6px;border:1px solid var(--line);border-radius:999px;background:var(--panel);font-family:var(--mono);font-size:10px;letter-spacing:.32em;text-transform:uppercase;color:var(--mint);width:max-content}
+
+.layout{display:grid;grid-template-columns:minmax(270px,320px) 1fr;gap:clamp(20px,2.6vw,32px);align-items:start}
+@media (max-width:900px){.layout{grid-template-columns:1fr}}
+
+.panel{position:sticky;top:20px;border:1px solid var(--line);border-radius:20px;background:var(--panel);padding:20px;display:flex;flex-direction:column;gap:18px}
+@media (max-width:900px){.panel{position:static}}
+.panel h2{margin:0;font-family:var(--display);font-size:14px;letter-spacing:.02em;font-weight:700}
+
+.drop{border:1.5px dashed var(--line);border-radius:16px;padding:22px 16px;text-align:center;cursor:pointer;transition:.15s;background:rgba(0,0,0,.15)}
+.drop:hover,.drop.drag{border-color:var(--lime);background:rgba(196,255,77,.06)}
+.drop svg{width:26px;height:26px;color:var(--mint);margin-bottom:8px}
+.drop strong{display:block;font-size:13.5px}
+.drop span{display:block;margin-top:4px;font-size:12px;color:var(--muted)}
+input[type=file]{display:none}
+
+fieldset{border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:14px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field .row{display:flex;align-items:center;justify-content:space-between;font-size:12.5px}
+.field .row b{font-weight:600}
+.field .row span{font-family:var(--mono);color:var(--mint);font-size:11.5px}
+input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:999px;background:var(--line);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:var(--lime);cursor:pointer;border:2px solid #04160F}
+input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:var(--lime);cursor:pointer;border:2px solid #04160F}
+
+.toggles{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:flex;align-items:center;gap:6px;padding:7px 11px;border-radius:999px;border:1px solid var(--line);font-size:12px;cursor:pointer;user-select:none;background:rgba(0,0,0,.15)}
+.chip input{accent-color:var(--lime)}
+.chip.on{border-color:var(--lime);color:var(--lime)}
+
+.colors{display:flex;gap:12px}
+.colorfield{display:flex;flex-direction:column;gap:5px;flex:1}
+.colorfield label{font-size:11.5px;color:var(--muted)}
+.colorfield .swatch{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:6px 8px;background:rgba(0,0,0,.15)}
+.colorfield input[type=color]{width:26px;height:26px;border:0;border-radius:6px;background:none;padding:0;cursor:pointer}
+.colorfield code{font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+.actionsbar{display:flex;flex-direction:column;gap:8px;padding-top:4px;border-top:1px solid var(--line)}
+button{font-family:var(--body);cursor:pointer}
+.btn{border:1px solid var(--line);background:rgba(0,0,0,.2);color:var(--paper);border-radius:999px;padding:11px 16px;font-size:13px;font-weight:600;letter-spacing:.01em;display:flex;align-items:center;justify-content:center;gap:8px;transition:.15s}
+.btn:hover{border-color:var(--mint)}
+.btn.primary{background:var(--lime);color:#04160F;border-color:var(--lime)}
+.btn.primary:hover{filter:brightness(1.06)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.hint{font-size:11.5px;color:var(--muted);line-height:1.55}
+
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
+.empty{border:1px dashed var(--line);border-radius:20px;padding:60px 20px;text-align:center;color:var(--muted);font-size:13.5px}
+
+.card{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:rgba(0,0,0,.18);display:flex;flex-direction:column}
+.card .frame{position:relative;aspect-ratio:1/1;background:#0a0a0a repeating-conic-gradient(rgba(255,255,255,.03) 0% 25%, transparent 0% 50%) 0/16px 16px}
+.card .frame img,.card .frame canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.card .frame .spin{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--mint);background:rgba(0,0,0,.35)}
+.card .meta{padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.card .name{font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%}
+.card .btns{display:flex;gap:6px}
+.iconbtn{border:1px solid var(--line);background:rgba(0,0,0,.2);border-radius:8px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;color:var(--paper)}
+.iconbtn:hover{border-color:var(--mint)}
+.iconbtn svg{width:14px;height:14px}
+
+.toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px}
+.toolbar .count{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.toolbar .btns{display:flex;gap:8px;flex-wrap:wrap}
+.toolbar .btn{padding:9px 14px}
+
+footer{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <header class="top">
+    <div class="brand">
+      <a class="back" href="/">← vx.hub</a>
+      <h1>Halftone Studio</h1>
+      <p>Envie qualquer imagem e ela recebe automaticamente o mesmo tratamento e a mesma proporção de trama de pontos — preto e branco, alto contraste, pontos que crescem nas sombras e encolhem nas luzes, exatamente como no efeito de referência.</p>
+      <span class="badge">Halftone · lote de imagens</span>
+    </div>
+  </header>
+
+  <div class="layout">
+
+    <aside class="panel">
+      <div>
+        <h2>1. Imagens</h2>
+        <div class="drop" id="drop" tabindex="0" role="button" aria-label="Enviar imagens">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+          <strong>Arraste imagens aqui</strong>
+          <span>ou clique para escolher — vários arquivos de uma vez</span>
+          <input type="file" id="file-input" accept="image/*" multiple>
+        </div>
+      </div>
+
+      <div>
+        <h2 style="margin-bottom:12px">2. Efeito</h2>
+        <fieldset id="controls">
+          <div class="field">
+            <div class="row"><b>Tamanho do ponto</b><span id="v-dot">1.2%</span></div>
+            <input type="range" id="dot" min="0.4" max="4" step="0.1" value="1.2">
+          </div>
+          <div class="field">
+            <div class="row"><b>Ângulo da trama</b><span id="v-angle">15°</span></div>
+            <input type="range" id="angle" min="0" max="90" step="1" value="15">
+          </div>
+          <div class="field">
+            <div class="row"><b>Contraste</b><span id="v-contrast">+35</span></div>
+            <input type="range" id="contrast" min="-50" max="100" step="1" value="35">
+          </div>
+          <div class="field">
+            <div class="row"><b>Brilho</b><span id="v-bright">0</span></div>
+            <input type="range" id="bright" min="-60" max="60" step="1" value="0">
+          </div>
+          <div class="field">
+            <div class="row"><b>Curva dos pontos</b><span id="v-curve">1.00</span></div>
+            <input type="range" id="curve" min="0.6" max="1.8" step="0.02" value="1">
+          </div>
+          <div class="field">
+            <div class="row"><b>Suavização</b><span id="v-blur">0.6</span></div>
+            <input type="range" id="blur" min="0" max="3" step="0.1" value="0.6">
+          </div>
+
+          <div class="toggles">
+            <label class="chip on" id="chip-auto"><input type="checkbox" id="auto" checked>Auto-nivelar</label>
+            <label class="chip" id="chip-invert"><input type="checkbox" id="invert">Inverter</label>
+          </div>
+
+          <div class="colors">
+            <div class="colorfield">
+              <label>Fundo</label>
+              <div class="swatch"><input type="color" id="bg-color" value="#ffffff"><code id="bg-code">#FFFFFF</code></div>
+            </div>
+            <div class="colorfield">
+              <label>Pontos</label>
+              <div class="swatch"><input type="color" id="dot-color" value="#000000"><code id="dot-code">#000000</code></div>
+            </div>
+          </div>
+        </fieldset>
+      </div>
+
+      <div class="actionsbar">
+        <button class="btn primary" id="btn-process">Processar imagens</button>
+        <button class="btn" id="btn-download-all" disabled>Baixar todas (.zip)</button>
+        <p class="hint">O nivelamento automático analisa o histograma de cada foto e ajusta exposição/contraste antes da trama, para que fotos diferentes saiam com a mesma aparência.</p>
+      </div>
+    </aside>
+
+    <main>
+      <div class="toolbar">
+        <span class="count" id="counter">0 imagens</span>
+        <div class="btns">
+          <button class="btn" id="btn-clear">Limpar tudo</button>
+        </div>
+      </div>
+
+      <div class="gallery" id="gallery">
+        <div class="empty" id="empty-state">Nenhuma imagem ainda. Envie fotos ao lado para ver o efeito halftone aplicado automaticamente.</div>
+      </div>
+    </main>
+
+  </div>
+
+  <footer>Processamento 100% local no navegador — nenhuma imagem é enviada a servidores. · vx.hub</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var MAX_DIM = 3000;
+
+  var state = { items: [] };
+
+  var els = {
+    drop: document.getElementById('drop'),
+    fileInput: document.getElementById('file-input'),
+    gallery: document.getElementById('gallery'),
+    emptyState: document.getElementById('empty-state'),
+    counter: document.getElementById('counter'),
+    btnProcess: document.getElementById('btn-process'),
+    btnDownloadAll: document.getElementById('btn-download-all'),
+    btnClear: document.getElementById('btn-clear'),
+    dot: document.getElementById('dot'), vDot: document.getElementById('v-dot'),
+    angle: document.getElementById('angle'), vAngle: document.getElementById('v-angle'),
+    contrast: document.getElementById('contrast'), vContrast: document.getElementById('v-contrast'),
+    bright: document.getElementById('bright'), vBright: document.getElementById('v-bright'),
+    curve: document.getElementById('curve'), vCurve: document.getElementById('v-curve'),
+    blur: document.getElementById('blur'), vBlur: document.getElementById('v-blur'),
+    auto: document.getElementById('auto'), chipAuto: document.getElementById('chip-auto'),
+    invert: document.getElementById('invert'), chipInvert: document.getElementById('chip-invert'),
+    bgColor: document.getElementById('bg-color'), bgCode: document.getElementById('bg-code'),
+    dotColor: document.getElementById('dot-color'), dotCode: document.getElementById('dot-code')
+  };
+
+  function readSettings(){
+    return {
+      dotPercent: parseFloat(els.dot.value),
+      angle: parseFloat(els.angle.value),
+      contrast: parseFloat(els.contrast.value),
+      brightness: parseFloat(els.bright.value),
+      curve: parseFloat(els.curve.value),
+      blur: parseFloat(els.blur.value),
+      autoLevels: els.auto.checked,
+      invert: els.invert.checked,
+      bg: els.bgColor.value,
+      dot: els.dotColor.value
+    };
+  }
+
+  function syncLabels(){
+    els.vDot.textContent = parseFloat(els.dot.value).toFixed(1) + '%';
+    els.vAngle.textContent = els.angle.value + '°';
+    els.vContrast.textContent = (els.contrast.value > 0 ? '+' : '') + els.contrast.value;
+    els.vBright.textContent = (els.bright.value > 0 ? '+' : '') + els.bright.value;
+    els.vCurve.textContent = parseFloat(els.curve.value).toFixed(2);
+    els.vBlur.textContent = parseFloat(els.blur.value).toFixed(1);
+    els.chipAuto.classList.toggle('on', els.auto.checked);
+    els.chipInvert.classList.toggle('on', els.invert.checked);
+    els.bgCode.textContent = els.bgColor.value.toUpperCase();
+    els.dotCode.textContent = els.dotColor.value.toUpperCase();
+  }
+
+  // ---------- core halftone engine ----------
+
+  function clamp(v, a, b){ return v < a ? a : (v > b ? b : v); }
+
+  function hexToRgb(hex){
+    var v = parseInt(hex.slice(1), 16);
+    return [(v >> 16) & 255, (v >> 8) & 255, v & 255];
+  }
+
+  // Builds a grayscale + auto-levels + contrast/brightness treated canvas from a source image.
+  function buildTreatedGray(img, settings, w, h){
+    var src = document.createElement('canvas');
+    src.width = w; src.height = h;
+    var sctx = src.getContext('2d');
+    sctx.drawImage(img, 0, 0, w, h);
+    var data = sctx.getImageData(0, 0, w, h);
+    var px = data.data;
+    var n = w * h;
+    var gray = new Float32Array(n);
+    var hist = new Uint32Array(256);
+
+    for (var i = 0, p = 0; i < n; i++, p += 4){
+      var g = 0.299 * px[p] + 0.587 * px[p+1] + 0.114 * px[p+2];
+      gray[i] = g;
+      hist[g | 0]++;
+    }
+
+    var lo = 0, hi = 255;
+    if (settings.autoLevels){
+      var clip = n * 0.005;
+      var acc = 0;
+      for (var a = 0; a < 256; a++){ acc += hist[a]; if (acc > clip){ lo = a; break; } }
+      acc = 0;
+      for (var b = 255; b >= 0; b--){ acc += hist[b]; if (acc > clip){ hi = b; break; } }
+      if (hi <= lo){ lo = 0; hi = 255; }
+    }
+
+    var levelScale = 255 / Math.max(1, (hi - lo));
+    var contrastFactor = (259 * (settings.contrast + 255)) / (255 * (259 - settings.contrast));
+
+    for (var j = 0, q = 0; j < n; j++, q += 4){
+      var v = gray[j];
+      if (settings.autoLevels) v = (v - lo) * levelScale;
+      v = contrastFactor * (v - 128) + 128 + settings.brightness;
+      v = clamp(v, 0, 255);
+      px[q] = px[q+1] = px[q+2] = v; px[q+3] = 255;
+    }
+    sctx.putImageData(data, 0, 0);
+
+    if (settings.blur > 0){
+      var blurred = document.createElement('canvas');
+      blurred.width = w; blurred.height = h;
+      var bctx = blurred.getContext('2d');
+      var px2 = Math.max(0.1, (settings.blur / 100) * w);
+      bctx.filter = 'blur(' + px2.toFixed(2) + 'px)';
+      bctx.drawImage(src, 0, 0);
+      return blurred;
+    }
+    return src;
+  }
+
+  function renderHalftone(img, settings){
+    var scale = Math.min(1, MAX_DIM / Math.max(img.naturalWidth, img.naturalHeight));
+    var w = Math.max(1, Math.round(img.naturalWidth * scale));
+    var h = Math.max(1, Math.round(img.naturalHeight * scale));
+
+    var treated = buildTreatedGray(img, settings, w, h);
+
+    var angleRad = settings.angle * Math.PI / 180;
+    var diag = Math.ceil(Math.sqrt(w * w + h * h)) + 4;
+    var rot = document.createElement('canvas');
+    rot.width = diag; rot.height = diag;
+    var rctx = rot.getContext('2d');
+    rctx.fillStyle = '#fff';
+    rctx.fillRect(0, 0, diag, diag);
+    rctx.translate(diag / 2, diag / 2);
+    rctx.rotate(angleRad);
+    rctx.drawImage(treated, -w / 2, -h / 2, w, h);
+    rctx.setTransform(1, 0, 0, 1, 0, 0);
+
+    var rotData = rctx.getImageData(0, 0, diag, diag).data;
+
+    var cell = Math.max(2, Math.round(w * settings.dotPercent / 100));
+    var dots = document.createElement('canvas');
+    dots.width = diag; dots.height = diag;
+    var dctx = dots.getContext('2d');
+    var bgRgb = hexToRgb(settings.bg);
+    var dotRgb = hexToRgb(settings.dot);
+    if (settings.invert){ var t = bgRgb; bgRgb = dotRgb; dotRgb = t; }
+
+    dctx.fillStyle = 'rgb(' + bgRgb[0] + ',' + bgRgb[1] + ',' + bgRgb[2] + ')';
+    dctx.fillRect(0, 0, diag, diag);
+    dctx.fillStyle = 'rgb(' + dotRgb[0] + ',' + dotRgb[1] + ',' + dotRgb[2] + ')';
+
+    var maxRadius = cell * 0.72;
+    for (var cy = 0; cy < diag; cy += cell){
+      var ch = Math.min(cell, diag - cy);
+      for (var cx = 0; cx < diag; cx += cell){
+        var cw = Math.min(cell, diag - cx);
+        var sum = 0, count = 0;
+        var stepX = cw > 10 ? 2 : 1, stepY = ch > 10 ? 2 : 1;
+        for (var yy = 0; yy < ch; yy += stepY){
+          var rowStart = ((cy + yy) * diag + cx) * 4;
+          for (var xx = 0; xx < cw; xx += stepX){
+            sum += rotData[rowStart + xx * 4];
+            count++;
+          }
+        }
+        var brightness = count ? (sum / count) / 255 : 1;
+        var coverage = clamp(1 - brightness, 0, 1);
+        coverage = Math.pow(coverage, settings.curve);
+        if (coverage <= 0.004) continue;
+        var radius = cell * Math.sqrt(coverage / Math.PI);
+        radius = Math.min(radius, maxRadius);
+        if (radius < 0.4) continue;
+        dctx.beginPath();
+        dctx.arc(cx + cell / 2, cy + cell / 2, radius, 0, Math.PI * 2);
+        dctx.fill();
+      }
+    }
+
+    var out = document.createElement('canvas');
+    out.width = w; out.height = h;
+    var octx = out.getContext('2d');
+    octx.fillStyle = 'rgb(' + bgRgb[0] + ',' + bgRgb[1] + ',' + bgRgb[2] + ')';
+    octx.fillRect(0, 0, w, h);
+    octx.translate(w / 2, h / 2);
+    octx.rotate(-angleRad);
+    octx.drawImage(dots, -diag / 2, -diag / 2);
+    octx.setTransform(1, 0, 0, 1, 0, 0);
+
+    return out;
+  }
+
+  // ---------- UI wiring ----------
+
+  function updateCounter(){
+    var n = state.items.length;
+    els.counter.textContent = n + (n === 1 ? ' imagem' : ' imagens');
+    els.emptyState.style.display = n ? 'none' : 'block';
+    els.btnDownloadAll.disabled = !state.items.some(function(it){ return it.canvas; });
+  }
+
+  function addFiles(fileList){
+    var files = Array.prototype.filter.call(fileList, function(f){ return f.type.indexOf('image/') === 0; });
+    files.forEach(function(file){
+      var id = 'im_' + Math.random().toString(36).slice(2, 10);
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      var item = { id: id, file: file, url: url, img: img, canvas: null, status: 'loading' };
+      state.items.push(item);
+      renderCard(item);
+      img.onload = function(){
+        item.status = 'pending';
+        processOne(item);
+      };
+      img.src = url;
+    });
+    updateCounter();
+  }
+
+  function renderCard(item){
+    var card = document.createElement('div');
+    card.className = 'card';
+    card.id = item.id;
+    card.innerHTML =
+      '<div class="frame">' +
+        '<img src="' + item.url + '" alt="">' +
+        '<div class="spin" style="display:none">processando…</div>' +
+      '</div>' +
+      '<div class="meta">' +
+        '<span class="name">' + item.file.name + '</span>' +
+        '<div class="btns">' +
+          '<button class="iconbtn" data-action="download" title="Baixar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 4v11M7 11l5 5 5-5"/><path d="M5 19h14"/></svg></button>' +
+          '<button class="iconbtn" data-action="remove" title="Remover"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
+        '</div>' +
+      '</div>';
+    card.querySelector('[data-action="download"]').addEventListener('click', function(){ downloadItem(item); });
+    card.querySelector('[data-action="remove"]').addEventListener('click', function(){ removeItem(item); });
+    els.gallery.appendChild(card);
+  }
+
+  function removeItem(item){
+    state.items = state.items.filter(function(it){ return it.id !== item.id; });
+    var card = document.getElementById(item.id);
+    if (card) card.remove();
+    URL.revokeObjectURL(item.url);
+    updateCounter();
+  }
+
+  function setCardBusy(item, busy){
+    var card = document.getElementById(item.id);
+    if (!card) return;
+    card.querySelector('.spin').style.display = busy ? 'flex' : 'none';
+  }
+
+  function paintCard(item){
+    var card = document.getElementById(item.id);
+    if (!card || !item.canvas) return;
+    var frame = card.querySelector('.frame');
+    var existing = frame.querySelector('canvas');
+    if (existing) existing.remove();
+    item.canvas.style.position = 'absolute';
+    item.canvas.style.inset = '0';
+    item.canvas.style.width = '100%';
+    item.canvas.style.height = '100%';
+    item.canvas.style.objectFit = 'contain';
+    frame.querySelector('img').style.display = 'none';
+    frame.appendChild(item.canvas);
+  }
+
+  function processOne(item){
+    if (item.status === 'loading') return;
+    setCardBusy(item, true);
+    setTimeout(function(){
+      try {
+        var settings = readSettings();
+        item.canvas = renderHalftone(item.img, settings);
+        item.status = 'done';
+        paintCard(item);
+      } catch (e){
+        console.error('Falha ao processar', item.file.name, e);
+        item.status = 'error';
+      }
+      setCardBusy(item, false);
+      updateCounter();
+    }, 0);
+  }
+
+  function processAll(){
+    var ready = state.items.filter(function(it){ return it.status !== 'loading'; });
+    var i = 0;
+    function step(){
+      if (i >= ready.length) return;
+      processOne(ready[i]);
+      i++;
+      setTimeout(step, 10);
+    }
+    step();
+  }
+
+  function downloadItem(item){
+    if (!item.canvas) return;
+    var a = document.createElement('a');
+    var base = item.file.name.replace(/\.[^.]+$/, '');
+    a.download = base + '-halftone.png';
+    a.href = item.canvas.toDataURL('image/png');
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  function downloadAll(){
+    var ready = state.items.filter(function(it){ return it.canvas; });
+    var i = 0;
+    function step(){
+      if (i >= ready.length) return;
+      downloadItem(ready[i]);
+      i++;
+      setTimeout(step, 350);
+    }
+    step();
+  }
+
+  var debounceTimer = null;
+  function scheduleReprocess(){
+    syncLabels();
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(processAll, 220);
+  }
+
+  // events
+  els.drop.addEventListener('click', function(){ els.fileInput.click(); });
+  els.drop.addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' ') els.fileInput.click(); });
+  els.fileInput.addEventListener('change', function(e){ addFiles(e.target.files); e.target.value = ''; });
+
+  ['dragenter', 'dragover'].forEach(function(ev){
+    els.drop.addEventListener(ev, function(e){ e.preventDefault(); els.drop.classList.add('drag'); });
+  });
+  ['dragleave', 'drop'].forEach(function(ev){
+    els.drop.addEventListener(ev, function(e){ e.preventDefault(); els.drop.classList.remove('drag'); });
+  });
+  els.drop.addEventListener('drop', function(e){
+    if (e.dataTransfer && e.dataTransfer.files) addFiles(e.dataTransfer.files);
+  });
+
+  ['dot','angle','contrast','bright','curve','blur','auto','invert','bg-color','dot-color'].forEach(function(id){
+    document.getElementById(id).addEventListener('input', scheduleReprocess);
+  });
+
+  els.btnProcess.addEventListener('click', processAll);
+  els.btnDownloadAll.addEventListener('click', downloadAll);
+  els.btnClear.addEventListener('click', function(){
+    state.items.forEach(function(it){ URL.revokeObjectURL(it.url); });
+    state.items = [];
+    els.gallery.querySelectorAll('.card').forEach(function(c){ c.remove(); });
+    updateCounter();
+  });
+
+  syncLabels();
+  updateCounter();
+})();
+</script>
+</body>
+</html>
