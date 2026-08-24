@@ -265,11 +265,17 @@ function render(){
         var raw = sum / count;
         cellRaw[cy * cols + cx] = raw;
         var brightness = levels(raw) / 255; // 0 escuro .. 1 claro
-        var radius = (1 - brightness) * (dotSize / 2) * 1.12;
-        if(radius > 0.35){
-          ctx.beginPath();
-          ctx.arc(x + dotSize / 2, y + dotSize / 2, radius, 0, Math.PI * 2);
-          ctx.fill();
+        if(brightness <= 0.05){
+          // sombra mais funda: preenche a célula inteira, sem textura de ponto nenhuma,
+          // pra virar uma massa sólida em vez de círculos quase-encostando com frestas.
+          ctx.fillRect(x, y, xMax - x, yMax - y);
+        } else {
+          var radius = (1 - brightness) * (dotSize / 2) * 1.12;
+          if(radius > 0.35){
+            ctx.beginPath();
+            ctx.arc(x + dotSize / 2, y + dotSize / 2, radius, 0, Math.PI * 2);
+            ctx.fill();
+          }
         }
       }
     }
