@@ -164,8 +164,11 @@ h1{margin:16px 0 0;font-family:var(--display);font-weight:700;font-size:clamp(28
           <button type="button" class="brush-btn brush-btn--active" id="brushModeAdd">✎ Marcar fundo</button>
           <button type="button" class="brush-btn" id="brushModeErase">⌫ Apagar marca</button>
         </div>
-        <button type="button" class="btn btn--ghost" id="brushClearBtn">Limpar marcações</button>
-        <p class="hint">Clique e arraste na imagem pra marcar manualmente o que é fundo — útil quando a detecção automática erra alguma área. "Apagar marca" protege um pedaço pra ele nunca virar fundo.</p>
+        <div class="presets">
+          <button type="button" class="btn btn--ghost" id="brushUndoBtn" disabled>↩ Desfazer</button>
+          <button type="button" class="btn btn--ghost" id="brushClearBtn">Limpar marcações</button>
+        </div>
+        <p class="hint">Clique e arraste na imagem pra marcar manualmente o que é fundo — útil quando a detecção automática erra alguma área. "Apagar marca" protege um pedaço pra ele nunca virar fundo. Mudar o "Tamanho do ponto" mantém suas marcações; trocar de imagem ou clicar "Desfazer" demais as limpa.</p>
       </div>
       <div class="field">
         <label>Efeito Threshold (contraste vintage) <span id="thresholdVal">65</span></label>
@@ -215,6 +218,7 @@ var brushSoftnessVal = document.getElementById('brushSoftnessVal');
 var brushModeAddBtn = document.getElementById('brushModeAdd');
 var brushModeEraseBtn = document.getElementById('brushModeErase');
 var brushClearBtn = document.getElementById('brushClearBtn');
+var brushUndoBtn = document.getElementById('brushUndoBtn');
 var thresholdInput = document.getElementById('threshold');
 var thresholdVal = document.getElementById('thresholdVal');
 var blackPointInput = document.getElementById('blackPoint');
@@ -239,6 +243,8 @@ var MAX_DIM = 1400;
 // "nunca vira fundo", sempre vence sobre a marcação e sobre a detecção automática.
 var manualMarkStrength = null;
 var manualProtect = null;
+var brushHistory = []; // pilha de snapshots tirados antes de cada traço/ação, pro "Desfazer"
+var BRUSH_HISTORY_MAX = 20;
 var paintMode = 1;
 var isPainting = false;
 var lastDotSize = 0, lastCols = 0, lastRows = 0;
@@ -257,6 +263,8 @@ function loadFile(file){
     sourceCanvas.getContext('2d').drawImage(img, 0, 0, w, h);
     manualMarkStrength = null;
     manualProtect = null;
+    brushHistory.length = 0;
+    brushUndoBtn.disabled = true;
     drop.hidden = true;
     outCanvas.hidden = false;
     downloadBtn.disabled = false;
@@ -311,11 +319,29 @@ function render(){
     var cellG = doCutout ? new Float32Array(cols * rows) : null;
     var cellB = doCutout ? new Float32Array(cols * rows) : null;
 
-    // o pincel manual guarda marcações por célula; se a imagem ou o tamanho do ponto mudou,
-    // a grade de células mudou de tamanho junto, então as marcações antigas não valem mais.
+    // o pincel manual guarda marcações por célula; se o tamanho do ponto mudou, a grade de
+    // células mudou de tamanho junto. Em vez de simplesmente jogar fora as marcações antigas,
+    // reamostra cada célula nova pela posição em pixels (não pelo índice), assim o traço do
+    // pincel sobrevive a um ajuste no "Tamanho do ponto" em vez de sumir. Só fica em branco
+    // mesmo quando uma imagem nova é carregada (loadFile já zera manualMarkStrength ali).
     if(!manualMarkStrength || manualMarkStrength.length !== cols * rows){
-      manualMarkStrength = new Float32Array(cols * rows);
-      manualProtect = new Uint8Array(cols * rows);
+      var newMarkStrength = new Float32Array(cols * rows);
+      var newProtect = new Uint8Array(cols * rows);
+      if(manualMarkStrength && lastCols && lastRows){
+        for(var ny = 0; ny < rows; ny++){
+          var oy = Math.min(lastRows - 1, Math.floor(((ny + 0.5) * dotSize) / lastDotSize));
+          for(var nx = 0; nx < cols; nx++){
+            var ox = Math.min(lastCols - 1, Math.floor(((nx + 0.5) * dotSize) / lastDotSize));
+            var oidx = oy * lastCols + ox, nidx = ny * cols + nx;
+            newMarkStrength[nidx] = manualMarkStrength[oidx];
+            newProtect[nidx] = manualProtect[oidx];
+          }
+        }
+      }
+      manualMarkStrength = newMarkStrength;
+      manualProtect = newProtect;
+      brushHistory.length = 0;
+      if(brushUndoBtn) brushUndoBtn.disabled = true;
     }
     lastDotSize = dotSize; lastCols = cols; lastRows = rows;
 
@@ -556,7 +582,25 @@ function setPaintMode(mode){
 }
 brushModeAddBtn.addEventListener('click', function(){ setPaintMode(1); });
 brushModeEraseBtn.addEventListener('click', function(){ setPaintMode(2); });
+
+// guarda uma cópia do estado atual do pincel antes de um traço/ação, pro "Desfazer" poder
+// voltar. Limitado a um histórico curto pra não crescer sem parar numa sessão longa de edição.
+function pushBrushHistory(){
+  if(!manualMarkStrength) return;
+  brushHistory.push({ mark: manualMarkStrength.slice(), protect: manualProtect.slice() });
+  if(brushHistory.length > BRUSH_HISTORY_MAX) brushHistory.shift();
+  brushUndoBtn.disabled = false;
+}
+brushUndoBtn.addEventListener('click', function(){
+  if(!brushHistory.length) return;
+  var prev = brushHistory.pop();
+  manualMarkStrength = prev.mark;
+  manualProtect = prev.protect;
+  brushUndoBtn.disabled = brushHistory.length === 0;
+  render();
+});
 brushClearBtn.addEventListener('click', function(){
+  pushBrushHistory();
   if(manualMarkStrength) manualMarkStrength.fill(0);
   if(manualProtect) manualProtect.fill(0);
   render();
@@ -636,6 +680,7 @@ brushSoftnessInput.addEventListener('input', function(){
 });
 outCanvas.addEventListener('pointerdown', function(e){
   if(!cutoutToggle.checked) return;
+  pushBrushHistory();
   isPainting = true;
   lastPaintPx = null; lastPaintPy = null;
   outCanvas.setPointerCapture(e.pointerId);
@@ -713,6 +758,8 @@ resetBtn.addEventListener('click', function(){
   sourceCanvas = null;
   manualMarkStrength = null;
   manualProtect = null;
+  brushHistory.length = 0;
+  brushUndoBtn.disabled = true;
   outCanvas.hidden = true;
   drop.hidden = false;
   downloadBtn.disabled = true;
