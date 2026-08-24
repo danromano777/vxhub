@@ -53,7 +53,7 @@ h1{margin:16px 0 0;font-family:var(--display);font-weight:700;font-size:clamp(28
     linear-gradient(45deg,rgba(255,255,255,.03) 25%,transparent 25%,transparent 75%,rgba(255,255,255,.03) 75%);
   background-size:24px 24px;background-position:0 0,12px 12px;
 }
-.canvas-card canvas{max-width:100%;max-height:70vh;display:block;border-radius:8px}
+.canvas-card canvas{max-width:100%;max-height:70vh;display:block;border-radius:8px;touch-action:none}
 .drop{
   position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
   cursor:pointer;padding:32px;text-align:center;transition:background .2s;
@@ -78,7 +78,15 @@ h1{margin:16px 0 0;font-family:var(--display);font-weight:700;font-size:clamp(28
   transition:border-color .2s,color .2s,background .2s;
 }
 .preset:hover{color:var(--paper);border-color:rgba(127,245,196,.4);background:rgba(127,245,196,.06)}
+.brush-btn{
+  appearance:none;cursor:pointer;padding:8px 12px;border-radius:999px;border:1px solid var(--line);
+  background:transparent;font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:rgba(234,255,246,.7);
+  transition:border-color .2s,color .2s,background .2s;
+}
+.brush-btn:hover{color:var(--paper);border-color:rgba(127,245,196,.4);background:rgba(127,245,196,.06)}
+.brush-btn--active{color:var(--paper);border-color:var(--mint);background:rgba(127,245,196,.16)}
 .checkbox input{accent-color:var(--mint);width:16px;height:16px}
+.hint{font-size:11.5px;line-height:1.5;color:var(--muted)}
 .btn{
   appearance:none;cursor:pointer;border:0;padding:13px 20px;border-radius:999px;font-family:var(--mono);
   font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;
@@ -147,6 +155,16 @@ h1{margin:16px 0 0;font-family:var(--display);font-weight:700;font-size:clamp(28
         <label>Cor do fundo escuro</label>
         <input type="color" id="darkBgColor" value="#0a0a0a">
       </div>
+      <div class="field" id="brushSection">
+        <label>Pincel manual <span id="brushSizeVal">40px</span></label>
+        <input type="range" id="brushSize" min="10" max="120" value="40" step="2">
+        <div class="presets">
+          <button type="button" class="brush-btn brush-btn--active" id="brushModeAdd">✎ Marcar fundo</button>
+          <button type="button" class="brush-btn" id="brushModeErase">⌫ Apagar marca</button>
+        </div>
+        <button type="button" class="btn btn--ghost" id="brushClearBtn">Limpar marcações</button>
+        <p class="hint">Clique e arraste na imagem pra marcar manualmente o que é fundo — útil quando a detecção automática erra alguma área. "Apagar marca" protege um pedaço pra ele nunca virar fundo.</p>
+      </div>
       <div class="field">
         <label>Efeito Threshold (contraste vintage) <span id="thresholdVal">65</span></label>
         <input type="range" id="threshold" min="0" max="100" value="65" step="1">
@@ -187,6 +205,12 @@ var transparentBgInput = document.getElementById('transparentBg');
 var cutoutToggle = document.getElementById('cutoutToggle');
 var darkBgField = document.getElementById('darkBgField');
 var darkBgColorInput = document.getElementById('darkBgColor');
+var brushSection = document.getElementById('brushSection');
+var brushSizeInput = document.getElementById('brushSize');
+var brushSizeVal = document.getElementById('brushSizeVal');
+var brushModeAddBtn = document.getElementById('brushModeAdd');
+var brushModeEraseBtn = document.getElementById('brushModeErase');
+var brushClearBtn = document.getElementById('brushClearBtn');
 var thresholdInput = document.getElementById('threshold');
 var thresholdVal = document.getElementById('thresholdVal');
 var blackPointInput = document.getElementById('blackPoint');
@@ -205,6 +229,13 @@ var statusEl = document.getElementById('status');
 var sourceCanvas = null; // holds the original image, scaled down for processing
 var MAX_DIM = 1400;
 
+// pincel manual: marcação por célula que sobrepõe a detecção automática de fundo.
+// 0 = usa a detecção automática, 1 = força "é fundo", 2 = força "não é fundo".
+var manualMask = null;
+var paintMode = 1;
+var isPainting = false;
+var lastDotSize = 0, lastCols = 0, lastRows = 0;
+
 function setStatus(msg){ statusEl.textContent = msg || ''; }
 
 function loadFile(file){
@@ -217,6 +248,7 @@ function loadFile(file){
     sourceCanvas = document.createElement('canvas');
     sourceCanvas.width = w; sourceCanvas.height = h;
     sourceCanvas.getContext('2d').drawImage(img, 0, 0, w, h);
+    manualMask = null;
     drop.hidden = true;
     outCanvas.hidden = false;
     downloadBtn.disabled = false;
@@ -271,6 +303,13 @@ function render(){
     var cellG = doCutout ? new Float32Array(cols * rows) : null;
     var cellB = doCutout ? new Float32Array(cols * rows) : null;
 
+    // o pincel manual guarda marcações por célula; se a imagem ou o tamanho do ponto mudou,
+    // a grade de células mudou de tamanho junto, então as marcações antigas não valem mais.
+    if(!manualMask || manualMask.length !== cols * rows){
+      manualMask = new Uint8Array(cols * rows);
+    }
+    lastDotSize = dotSize; lastCols = cols; lastRows = rows;
+
     for(var cy = 0; cy < rows; cy++){
       var y = cy * dotSize;
       var yMax = Math.min(y + dotSize, h);
@@ -308,22 +347,28 @@ function render(){
 
     // fundo claro -> recorte: acha a região clara conectada às bordas da imagem (o fundo da foto)
     // e repinta só ela com uma cor escura sólida, deixando o sujeito com o halftone normal.
+    // O pincel manual sobrepõe essa detecção: célula marcada "1" vira fundo mesmo se a detecção
+    // não pegou; marcada "2" nunca vira fundo, mesmo se a detecção (erradamente) pegou.
     if(doCutout){
-      var bgMask = computeBgMask(cols, rows, cellRaw, cellR, cellG, cellB);
-      if(bgMask){
-        ctx.fillStyle = darkBgColor;
-        for(var my = 0; my < rows; my++){
-          var my_ = my * dotSize;
-          var myMax = Math.min(my_ + dotSize, h);
-          for(var mx = 0; mx < cols; mx++){
-            if(!bgMask[my * cols + mx]) continue;
-            var mx_ = mx * dotSize;
-            var mxMax = Math.min(mx_ + dotSize, w);
-            ctx.fillRect(mx_, my_, mxMax - mx_, myMax - my_);
-          }
+      var autoMask = computeBgMask(cols, rows, cellRaw, cellR, cellG, cellB);
+      var painted = false;
+      ctx.fillStyle = darkBgColor;
+      for(var my = 0; my < rows; my++){
+        var my_ = my * dotSize;
+        var myMax = Math.min(my_ + dotSize, h);
+        for(var mx = 0; mx < cols; mx++){
+          var midx = my * cols + mx;
+          var manual = manualMask[midx];
+          var isBg = manual === 2 ? false : (manual === 1 ? true : !!(autoMask && autoMask[midx]));
+          if(!isBg) continue;
+          painted = true;
+          var mx_ = mx * dotSize;
+          var mxMax = Math.min(mx_ + dotSize, w);
+          ctx.fillRect(mx_, my_, mxMax - mx_, myMax - my_);
         }
-      } else {
-        cutoutHint = 'Fundo já está escuro — nada para recortar.';
+      }
+      if(!painted){
+        cutoutHint = 'Fundo já está escuro — nada para recortar (ou marque manualmente com o pincel).';
       }
     }
 
@@ -468,8 +513,74 @@ transparentBgInput.addEventListener('change', function(){
   bgColorInput.disabled = transparentBgInput.checked;
   render();
 });
-cutoutToggle.addEventListener('change', render);
+function updateBrushEnabled(){
+  var on = cutoutToggle.checked;
+  brushSection.style.opacity = on ? '1' : '.4';
+  brushSection.style.pointerEvents = on ? 'auto' : 'none';
+  outCanvas.style.cursor = on ? 'crosshair' : 'default';
+}
+cutoutToggle.addEventListener('change', function(){
+  updateBrushEnabled();
+  render();
+});
+updateBrushEnabled();
 darkBgColorInput.addEventListener('input', render);
+
+brushSizeInput.addEventListener('input', function(){
+  brushSizeVal.textContent = brushSizeInput.value + 'px';
+});
+function setPaintMode(mode){
+  paintMode = mode;
+  brushModeAddBtn.classList.toggle('brush-btn--active', mode === 1);
+  brushModeEraseBtn.classList.toggle('brush-btn--active', mode === 2);
+}
+brushModeAddBtn.addEventListener('click', function(){ setPaintMode(1); });
+brushModeEraseBtn.addEventListener('click', function(){ setPaintMode(2); });
+brushClearBtn.addEventListener('click', function(){
+  if(manualMask) manualMask.fill(0);
+  render();
+});
+
+// pincel: converte a posição do ponteiro (em pixels de tela) pra células da grade do halftone
+// e marca todas as células dentro do raio do pincel com o modo atual (marcar/apagar).
+function paintAt(clientX, clientY){
+  if(!sourceCanvas || !cutoutToggle.checked || !manualMask || !lastCols || !lastRows) return;
+  var rect = outCanvas.getBoundingClientRect();
+  if(rect.width === 0) return;
+  var scale = outCanvas.width / rect.width;
+  var px = (clientX - rect.left) * scale;
+  var py = (clientY - rect.top) * scale;
+  var pixelRadius = (Number(brushSizeInput.value) / 2) * scale;
+  var cellRadius = Math.max(1, pixelRadius / lastDotSize);
+  var ccx = px / lastDotSize, ccy = py / lastDotSize;
+  var cxMin = Math.max(0, Math.floor(ccx - cellRadius));
+  var cxMax = Math.min(lastCols - 1, Math.ceil(ccx + cellRadius));
+  var cyMin = Math.max(0, Math.floor(ccy - cellRadius));
+  var cyMax = Math.min(lastRows - 1, Math.ceil(ccy + cellRadius));
+  var changed = false;
+  for(var cy = cyMin; cy <= cyMax; cy++){
+    for(var cx = cxMin; cx <= cxMax; cx++){
+      var dx = (cx + 0.5) - ccx, dy = (cy + 0.5) - ccy;
+      if(dx * dx + dy * dy > cellRadius * cellRadius) continue;
+      var idx = cy * lastCols + cx;
+      if(manualMask[idx] !== paintMode){ manualMask[idx] = paintMode; changed = true; }
+    }
+  }
+  if(changed) render();
+}
+outCanvas.addEventListener('pointerdown', function(e){
+  if(!cutoutToggle.checked) return;
+  isPainting = true;
+  outCanvas.setPointerCapture(e.pointerId);
+  paintAt(e.clientX, e.clientY);
+});
+outCanvas.addEventListener('pointermove', function(e){
+  if(!isPainting) return;
+  paintAt(e.clientX, e.clientY);
+});
+['pointerup', 'pointercancel', 'pointerleave'].forEach(function(evt){
+  outCanvas.addEventListener(evt, function(){ isPainting = false; });
+});
 // o slider "Efeito Threshold" é um atalho: escreve nos dois controles finos abaixo
 // (ponto preto/branco), que continuam ajustáveis manualmente na sequência.
 function applyThreshold(t){
@@ -533,6 +644,7 @@ downloadBtn.addEventListener('click', function(){
 
 resetBtn.addEventListener('click', function(){
   sourceCanvas = null;
+  manualMask = null;
   outCanvas.hidden = true;
   drop.hidden = false;
   downloadBtn.disabled = true;
