@@ -131,25 +131,17 @@ h1{margin:16px 0 0;font-family:var(--display);font-weight:700;font-size:clamp(28
         <input type="color" id="bgColor" value="#ffffff">
       </div>
       <div class="presets">
-        <button type="button" class="preset" data-dot="#0d0d0d" data-bg="#ffffff" data-black="85" data-white="178" data-edge="55" data-grain="20">Preto &amp; branco</button>
-        <button type="button" class="preset" data-dot="#1a1109" data-bg="#f2ddc0" data-black="100" data-white="163" data-edge="65" data-grain="45">Sépia vintage</button>
-        <button type="button" class="preset" data-dot="#150e0b" data-bg="#e7c9a8" data-black="95" data-white="170" data-edge="60" data-grain="35">Poster quente</button>
+        <button type="button" class="preset" data-dot="#0d0d0d" data-bg="#ffffff" data-threshold="65" data-edge="55" data-grain="20">Preto &amp; branco</button>
+        <button type="button" class="preset" data-dot="#1a1109" data-bg="#f2ddc0" data-threshold="80" data-edge="65" data-grain="45">Sépia vintage</button>
+        <button type="button" class="preset" data-dot="#150e0b" data-bg="#e7c9a8" data-threshold="73" data-edge="60" data-grain="35">Poster quente</button>
       </div>
       <label class="checkbox">
         <input type="checkbox" id="transparentBg">
         Fundo transparente
       </label>
-      <label class="checkbox">
-        <input type="checkbox" id="thresholdToggle" checked>
-        Efeito Threshold (contraste vintage)
-      </label>
-      <div class="field" id="blackPointField">
-        <label>Ponto preto (escurece sombras/fundo) <span id="blackPointVal">85</span></label>
-        <input type="range" id="blackPoint" min="0" max="255" value="85" step="1">
-      </div>
-      <div class="field" id="whitePointField">
-        <label>Ponto branco (estoura luzes) <span id="whitePointVal">178</span></label>
-        <input type="range" id="whitePoint" min="0" max="255" value="178" step="1">
+      <div class="field">
+        <label>Efeito Threshold (contraste vintage) <span id="thresholdVal">65</span></label>
+        <input type="range" id="threshold" min="0" max="100" value="65" step="1">
       </div>
       <div class="field">
         <label>Contorno nas bordas <span id="edgeStrengthVal">55%</span></label>
@@ -176,13 +168,8 @@ var dotSizeVal = document.getElementById('dotSizeVal');
 var dotColorInput = document.getElementById('dotColor');
 var bgColorInput = document.getElementById('bgColor');
 var transparentBgInput = document.getElementById('transparentBg');
-var thresholdToggle = document.getElementById('thresholdToggle');
-var blackPointField = document.getElementById('blackPointField');
-var whitePointField = document.getElementById('whitePointField');
-var blackPointInput = document.getElementById('blackPoint');
-var blackPointVal = document.getElementById('blackPointVal');
-var whitePointInput = document.getElementById('whitePoint');
-var whitePointVal = document.getElementById('whitePointVal');
+var thresholdInput = document.getElementById('threshold');
+var thresholdVal = document.getElementById('thresholdVal');
 var edgeStrengthInput = document.getElementById('edgeStrength');
 var edgeStrengthVal = document.getElementById('edgeStrengthVal');
 var grainInput = document.getElementById('grain');
@@ -229,9 +216,11 @@ function render(){
     var dotColor = dotColorInput.value;
     var bgColor = bgColorInput.value;
     var transparent = transparentBgInput.checked;
-    var thresholdOn = thresholdToggle.checked;
-    var blackPoint = thresholdOn ? Number(blackPointInput.value) : 0;
-    var whitePoint = thresholdOn ? Math.max(blackPoint + 1, Number(whitePointInput.value)) : 255;
+    // um único slider (0-100) controla o quanto o threshold "aperta" sombras/luzes:
+    // 0 = sem crush (halftone suave e natural), 100 = quase binário (contraste vintage máximo).
+    var thresholdPct = Number(thresholdInput.value) / 100;
+    var blackPoint = thresholdPct * 130;
+    var whitePoint = Math.max(blackPoint + 1, 255 - thresholdPct * 110);
     var edgeStrength = Number(edgeStrengthInput.value);
 
     var srcData = sourceCanvas.getContext('2d').getImageData(0, 0, w, h).data;
@@ -365,20 +354,8 @@ transparentBgInput.addEventListener('change', function(){
   bgColorInput.disabled = transparentBgInput.checked;
   render();
 });
-thresholdToggle.addEventListener('change', function(){
-  var on = thresholdToggle.checked;
-  blackPointInput.disabled = !on;
-  whitePointInput.disabled = !on;
-  blackPointField.style.opacity = on ? '1' : '.4';
-  whitePointField.style.opacity = on ? '1' : '.4';
-  render();
-});
-blackPointInput.addEventListener('input', function(){
-  blackPointVal.textContent = blackPointInput.value;
-  render();
-});
-whitePointInput.addEventListener('input', function(){
-  whitePointVal.textContent = whitePointInput.value;
+thresholdInput.addEventListener('input', function(){
+  thresholdVal.textContent = thresholdInput.value;
   render();
 });
 edgeStrengthInput.addEventListener('input', function(){
@@ -393,20 +370,9 @@ presetBtns.forEach(function(btn){
   btn.addEventListener('click', function(){
     dotColorInput.value = btn.dataset.dot;
     bgColorInput.value = btn.dataset.bg;
-    if(!thresholdToggle.checked){
-      thresholdToggle.checked = true;
-      blackPointInput.disabled = false;
-      whitePointInput.disabled = false;
-      blackPointField.style.opacity = '1';
-      whitePointField.style.opacity = '1';
-    }
-    if(btn.dataset.black !== undefined){
-      blackPointInput.value = btn.dataset.black;
-      blackPointVal.textContent = btn.dataset.black;
-    }
-    if(btn.dataset.white !== undefined){
-      whitePointInput.value = btn.dataset.white;
-      whitePointVal.textContent = btn.dataset.white;
+    if(btn.dataset.threshold !== undefined){
+      thresholdInput.value = btn.dataset.threshold;
+      thresholdVal.textContent = btn.dataset.threshold;
     }
     if(btn.dataset.edge !== undefined){
       edgeStrengthInput.value = btn.dataset.edge;
