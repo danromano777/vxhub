@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { buildNomenclature } from '../lib/nomenclature.js';
+import { buildBriefingText } from '../lib/briefingText.js';
 import { STATUS_LABELS, STATUS_ORDER, StatusBadge } from './Briefings.jsx';
 
 const emptyBriefing = {
@@ -34,7 +35,8 @@ export default function BriefingEdit() {
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [copied, setCopied] = useState(false);
+  const [copiedNom, setCopiedNom] = useState(false);
+  const [copiedText, setCopiedText] = useState(false);
   const [statusDraft, setStatusDraft] = useState('');
   const [statusNote, setStatusNote] = useState('');
   const [changingStatus, setChangingStatus] = useState(false);
@@ -85,6 +87,11 @@ export default function BriefingEdit() {
     [selectedBrand, briefing]
   );
 
+  const briefingText = useMemo(
+    () => buildBriefingText({ briefing, brandName: selectedBrand?.name, brandCode: selectedBrand?.code }),
+    [briefing, selectedBrand]
+  );
+
   function set(field, value) {
     setBriefing((b) => ({ ...b, [field]: value }));
   }
@@ -125,8 +132,18 @@ export default function BriefingEdit() {
   async function handleCopyNomenclature() {
     try {
       await navigator.clipboard.writeText(nomenclature);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      setCopiedNom(true);
+      setTimeout(() => setCopiedNom(false), 1500);
+    } catch {
+      /* clipboard indisponível — ignora */
+    }
+  }
+
+  async function handleCopyText() {
+    try {
+      await navigator.clipboard.writeText(briefingText);
+      setCopiedText(true);
+      setTimeout(() => setCopiedText(false), 1500);
     } catch {
       /* clipboard indisponível — ignora */
     }
@@ -144,20 +161,8 @@ export default function BriefingEdit() {
         {!isNew && <StatusBadge status={statusDraft} />}
       </div>
 
-      <div className="nomenclature-box">
-        <span className="nomenclature-box__label">Nomenclatura do card/arquivo</span>
-        <code className="nomenclature-box__value">{nomenclature}</code>
-        <button type="button" className="icon-btn" onClick={handleCopyNomenclature}>
-          {copied ? 'Copiado!' : 'Copiar'}
-        </button>
-        {!selectedBrand?.code && (
-          <p className="hint">
-            Selecione um cliente com sigla cadastrada (ou adicione a sigla em Clientes → Editar) para gerar a
-            nomenclatura completa.
-          </p>
-        )}
-      </div>
-
+      <div className="briefing-layout">
+      <div className="briefing-main">
       <form onSubmit={handleSave} className="form">
         <fieldset disabled={!canWrite}>
           <h3>1. Identificação</h3>
@@ -402,6 +407,36 @@ export default function BriefingEdit() {
           </ul>
         </div>
       )}
+      </div>
+
+      <aside className="briefing-side">
+        <div className="copy-panel">
+          <span className="copy-panel__label">Nome do card/arquivo</span>
+          <code className="copy-panel__code">{nomenclature}</code>
+          <button type="button" className="ghost-btn" onClick={handleCopyNomenclature}>
+            {copiedNom ? 'Copiado!' : 'Copiar nome'}
+          </button>
+          {!selectedBrand?.code && (
+            <p className="hint">
+              Selecione um cliente com sigla cadastrada (ou adicione a sigla em Clientes → Editar) para gerar a
+              nomenclatura completa.
+            </p>
+          )}
+        </div>
+
+        <div className="copy-panel">
+          <span className="copy-panel__label">Briefing para colar no Trello</span>
+          <textarea className="copy-panel__text" value={briefingText} readOnly rows={18} />
+          <button type="button" className="btn" onClick={handleCopyText}>
+            {copiedText ? 'Copiado!' : 'Copiar briefing'}
+          </button>
+          <p className="hint">
+            Atualiza sozinho conforme você preenche o formulário — social ou atendimento só cola direto na descrição
+            do card.
+          </p>
+        </div>
+      </aside>
+      </div>
     </div>
   );
 }
