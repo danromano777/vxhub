@@ -357,3 +357,18 @@ select option {
   border: 1px solid var(--line); background: transparent; color: var(--paper); font-size: 12.5px; cursor: pointer;
 }
 .ghost-btn:hover { background: var(--fill-hover); }
+
+.quick-add-brand { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: -4px; }
+.quick-add-brand input {
+  flex: 1; min-width: 180px; padding: 9px 11px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--fill); color: var(--paper);
+}
+.quick-add-brand__code {
+  font-family: ui-monospace, monospace; font-size: 12px; color: var(--turq);
+  background: var(--turq-soft); padding: 4px 9px; border-radius: 999px; white-space: nowrap;
+}
+.quick-add-brand button {
+  padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line); background: transparent;
+  color: var(--paper); cursor: pointer; font-size: 13px;
+}
+.quick-add-brand button:first-of-type { background: var(--accent-grad); color: var(--accent-ink); border: 0; font-weight: 700; }

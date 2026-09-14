@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../context/AuthContext.jsx';
-import { buildNomenclature } from '../lib/nomenclature.js';
+import { buildNomenclature, slugify, suggestBrandCode } from '../lib/nomenclature.js';
 import { buildBriefingText } from '../lib/briefingText.js';
 import { STATUS_LABELS, STATUS_ORDER, StatusBadge } from './Briefings.jsx';
+
+const NEW_CLIENT_OPTION = '__new_client__';
 
 const emptyBriefing = {
   brand_id: '', title: '', campaign_name: '', job_type: '', job_size: '', requester_name: '',
@@ -40,6 +42,9 @@ export default function BriefingEdit() {
   const [statusDraft, setStatusDraft] = useState('');
   const [statusNote, setStatusNote] = useState('');
   const [changingStatus, setChangingStatus] = useState(false);
+  const [addingBrand, setAddingBrand] = useState(false);
+  const [newBrandName, setNewBrandName] = useState('');
+  const [creatingBrand, setCreatingBrand] = useState(false);
 
   function load() {
     if (isNew) return;
@@ -149,6 +154,40 @@ export default function BriefingEdit() {
     }
   }
 
+  const suggestedNewBrandCode = newBrandName.trim()
+    ? suggestBrandCode(newBrandName, brands.map((b) => b.code))
+    : '';
+
+  async function handleCreateBrand() {
+    const name = newBrandName.trim();
+    if (!name) return;
+    setCreatingBrand(true);
+    setError('');
+    try {
+      const payload = {
+        slug: slugify(name) || `cliente-${Date.now()}`,
+        name,
+        display_html: name,
+        brand_group: 'Clientes VX',
+        filter_key: 'briefing',
+        description: '',
+        code: suggestedNewBrandCode,
+        briefing_only: true,
+        sort_order: 0,
+      };
+      const r = await api.createBrand(payload);
+      const updated = await api.listBrands();
+      setBrands(updated);
+      set('brand_id', String(r.id));
+      setAddingBrand(false);
+      setNewBrandName('');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setCreatingBrand(false);
+    }
+  }
+
   if (loading) return <p className="loading">Carregando…</p>;
 
   return (
@@ -180,7 +219,16 @@ export default function BriefingEdit() {
             </label>
             <label>
               Cliente
-              <select value={briefing.brand_id || ''} onChange={(e) => set('brand_id', e.target.value)}>
+              <select
+                value={briefing.brand_id || ''}
+                onChange={(e) => {
+                  if (e.target.value === NEW_CLIENT_OPTION) {
+                    setAddingBrand(true);
+                    return;
+                  }
+                  set('brand_id', e.target.value);
+                }}
+              >
                 <option value="">Sem cliente vinculado</option>
                 {brands.map((b) => (
                   <option key={b.id} value={b.id}>
@@ -188,8 +236,38 @@ export default function BriefingEdit() {
                     {b.code ? ` [${b.code}]` : ''}
                   </option>
                 ))}
+                <option value={NEW_CLIENT_OPTION}>+ Adicionar cliente…</option>
               </select>
             </label>
+            {addingBrand && (
+              <div className="quick-add-brand">
+                <input
+                  autoFocus
+                  placeholder="Nome do novo cliente"
+                  value={newBrandName}
+                  onChange={(e) => setNewBrandName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleCreateBrand();
+                    }
+                  }}
+                />
+                {suggestedNewBrandCode && <span className="quick-add-brand__code">[{suggestedNewBrandCode}]</span>}
+                <button type="button" onClick={handleCreateBrand} disabled={!newBrandName.trim() || creatingBrand}>
+                  {creatingBrand ? 'Criando…' : 'Criar'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAddingBrand(false);
+                    setNewBrandName('');
+                  }}
+                >
+                  Cancelar
+                </button>
+              </div>
+            )}
             <label>
               Tipo de job
               <input

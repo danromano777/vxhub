@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import { suggestBrandCode } from '../lib/nomenclature.js';
 
 const emptyBrand = {
   slug: '', name: '', display_html: '', brand_group: '', filter_key: '', description: '',
@@ -73,6 +74,8 @@ export default function BrandEdit() {
   const [error, setError] = useState('');
   const [groupOptions, setGroupOptions] = useState([]);
   const [filterOptions, setFilterOptions] = useState([]);
+  const [existingCodes, setExistingCodes] = useState([]);
+  const [codeTouched, setCodeTouched] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const logoFileRef = useRef(null);
 
@@ -93,8 +96,14 @@ export default function BrandEdit() {
     api.listBrands().then((brands) => {
       setGroupOptions([...new Set(brands.map((b) => b.brand_group).filter(Boolean))].sort());
       setFilterOptions([...new Set(brands.map((b) => b.filter_key).filter(Boolean))].sort());
+      setExistingCodes(brands.map((b) => b.code).filter(Boolean));
     });
   }, []);
+
+  useEffect(() => {
+    if (!isNew || codeTouched || !brand.name) return;
+    setBrand((b) => ({ ...b, code: suggestBrandCode(b.name, existingCodes) }));
+  }, [isNew, codeTouched, brand.name, existingCodes]);
 
   function set(field, value) {
     setBrand((b) => ({ ...b, [field]: value }));
@@ -186,10 +195,17 @@ export default function BrandEdit() {
               Sigla (nomenclatura de card/arquivo)
               <input
                 value={brand.code || ''}
-                onChange={(e) => set('code', e.target.value.toUpperCase())}
+                onChange={(e) => {
+                  setCodeTouched(true);
+                  set('code', e.target.value.toUpperCase());
+                }}
                 placeholder="ex: CB, ESPN, ALAD"
               />
-              <span className="hint">Usada para montar o nome padronizado do card/arquivo no briefing, ex: [CB]01-21_...</span>
+              <span className="hint">
+                {isNew && !codeTouched && brand.code
+                  ? `Sugerida automaticamente a partir do nome (${brand.code}) — edite se quiser outra.`
+                  : 'Usada para montar o nome padronizado do card/arquivo no briefing, ex: [CB]01-21_...'}
+              </span>
             </label>
           </div>
           <label>
