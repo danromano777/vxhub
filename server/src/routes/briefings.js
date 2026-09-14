@@ -10,14 +10,21 @@ const CAN_WRITE = requireRole('admin', 'editor');
 const STATUSES = ['rascunho', 'enviado', 'em_revisao', 'aprovado', 'reprovado'];
 
 const BRIEFING_FIELDS = [
-  'brand_id', 'title', 'job_type', 'requester_name', 'objective', 'target_audience',
-  'key_message', 'deadline', 'budget', 'references_text', 'notes',
+  'brand_id', 'title', 'campaign_name', 'job_type', 'job_size', 'requester_name',
+  'context', 'objective', 'target_audience', 'product_service', 'key_message', 'concept',
+  'scope', 'channels', 'kpis', 'start_date', 'deadline', 'budget', 'dos_donts',
+  'references_text', 'history_notes', 'notes', 'open_points',
+  'piece_format', 'piece_count', 'video_channel',
 ];
+
+const DATE_FIELDS = ['start_date', 'deadline'];
+const NULLABLE_FIELDS = ['brand_id', 'job_size', 'video_channel', ...DATE_FIELDS];
 
 function briefingValues(body) {
   return BRIEFING_FIELDS.map((f) => {
-    if (f === 'brand_id') return body[f] || null;
-    if (f === 'deadline') return body[f] || null;
+    if (NULLABLE_FIELDS.includes(f)) return body[f] || null;
+    if (f === 'piece_count') return Number(body[f]) || 1;
+    if (f === 'piece_format') return body[f] === 'VID' ? 'VID' : 'EST';
     return body[f] ?? '';
   });
 }
@@ -36,7 +43,7 @@ router.get('/', async (req, res) => {
   }
   const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
   const [briefings] = await pool.query(
-    `SELECT br.*, b.name AS brand_name, u.name AS created_by_name
+    `SELECT br.*, b.name AS brand_name, b.code AS brand_code, u.name AS created_by_name
      FROM briefings br
      LEFT JOIN brands b ON b.id = br.brand_id
      LEFT JOIN users u ON u.id = br.created_by
@@ -51,7 +58,7 @@ router.get('/:id', async (req, res) => {
   const [[briefing]] = [
     (
       await pool.query(
-        `SELECT br.*, b.name AS brand_name, u.name AS created_by_name
+        `SELECT br.*, b.name AS brand_name, b.code AS brand_code, u.name AS created_by_name
          FROM briefings br
          LEFT JOIN brands b ON b.id = br.brand_id
          LEFT JOIN users u ON u.id = br.created_by

@@ -12,7 +12,7 @@ router.get('/brands', async (req, res) => {
   const [brands] = await pool.query(
     `SELECT slug,name,display_html,brand_group,filter_key,description,
        grad_a,grad_b,grad_c,grad_d,grad_base,grad_glow,grad_pale,logo_url,logo_offset_x
-     FROM brands ORDER BY sort_order, id`
+     FROM brands WHERE briefing_only = FALSE ORDER BY sort_order, id`
   );
   res.json(brands);
 });

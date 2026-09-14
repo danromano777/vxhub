@@ -38,16 +38,20 @@ const CAN_WRITE = requireRole('admin', 'editor');
 const BRAND_FIELDS = [
   'slug', 'name', 'display_html', 'brand_group', 'filter_key', 'description',
   'grad_a', 'grad_b', 'grad_c', 'grad_d', 'grad_base', 'grad_glow', 'grad_pale', 'logo_url',
-  'logo_offset_x', 'sort_order',
+  'logo_offset_x', 'sort_order', 'code', 'briefing_only',
 ];
 
 function brandValues(body) {
   return BRAND_FIELDS.map((f) => {
-    if (f === 'grad_pale') return !!body[f];
+    if (f === 'grad_pale' || f === 'briefing_only') return !!body[f];
     if (f === 'sort_order') return body[f] || 0;
     if (f === 'logo_offset_x') {
       const v = body[f];
       return v === '' || v === null || v === undefined ? null : Number(v);
+    }
+    if (f === 'code') {
+      const v = (body[f] || '').trim().toUpperCase();
+      return v === '' ? null : v;
     }
     return body[f] ?? '';
   });
@@ -88,7 +92,12 @@ router.post('/', CAN_WRITE, async (req, res) => {
     );
     res.status(201).json({ id: result.insertId });
   } catch (err) {
-    if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Esse slug já está em uso por outra marca' });
+    if (err.code === 'ER_DUP_ENTRY') {
+      const msg = err.sqlMessage?.includes('brands_code_unique')
+        ? 'Essa sigla já está em uso por outra marca'
+        : 'Esse slug já está em uso por outra marca';
+      return res.status(409).json({ error: msg });
+    }
     throw err;
   }
 });
@@ -101,7 +110,12 @@ router.put('/:id', CAN_WRITE, async (req, res) => {
     );
     res.json({ ok: true });
   } catch (err) {
-    if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Esse slug já está em uso por outra marca' });
+    if (err.code === 'ER_DUP_ENTRY') {
+      const msg = err.sqlMessage?.includes('brands_code_unique')
+        ? 'Essa sigla já está em uso por outra marca'
+        : 'Esse slug já está em uso por outra marca';
+      return res.status(409).json({ error: msg });
+    }
     throw err;
   }
 });

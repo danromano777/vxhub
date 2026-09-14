@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import { buildNomenclature } from '../lib/nomenclature.js';
 
 export const STATUS_LABELS = {
   rascunho: 'Rascunho',
@@ -102,7 +103,7 @@ export function BriefingsPanel() {
             <tr>
               <th>Título</th>
               <th>Cliente</th>
-              <th>Tipo</th>
+              <th>Nomenclatura</th>
               <th>Prazo</th>
               <th>Status</th>
               <th>Criado por</th>
@@ -114,7 +115,17 @@ export function BriefingsPanel() {
               <tr key={b.id} onClick={() => navigate(`/briefings/${b.id}`)} style={{ cursor: 'pointer' }}>
                 <td>{b.title}</td>
                 <td>{b.brand_name || '—'}</td>
-                <td>{b.job_type || '—'}</td>
+                <td style={{ fontFamily: 'ui-monospace, monospace', fontSize: 12 }}>
+                  {buildNomenclature({
+                    brandCode: b.brand_code,
+                    date: b.start_date || b.deadline,
+                    campaignName: b.campaign_name,
+                    title: b.title,
+                    pieceFormat: b.piece_format,
+                    pieceCount: b.piece_count,
+                    videoChannel: b.video_channel,
+                  })}
+                </td>
                 <td>{formatDate(b.deadline)}</td>
                 <td>
                   <StatusBadge status={b.status} />

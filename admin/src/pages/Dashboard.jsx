@@ -228,8 +228,14 @@ function ClientCard({ brand, canWrite, onChange, onDelete }) {
             )}
           </div>
           <div>
-            <div className="client-name">{brand.name}</div>
-            <div className="client-slug">/{brand.slug}</div>
+            <div className="client-name">
+              {brand.name}
+              {brand.code && <span className="badge" style={{ marginLeft: 8 }}>{brand.code}</span>}
+            </div>
+            <div className="client-slug">
+              /{brand.slug}
+              {brand.briefing_only && <span className="badge" style={{ marginLeft: 8 }}>Somente briefing</span>}
+            </div>
           </div>
         </div>
         <div className="client-card__actions">

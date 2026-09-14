@@ -9,6 +9,7 @@ const emptyBrand = {
   grad_base: '#07261f', grad_glow: 'rgba(196,255,77,.45)', grad_pale: false, logo_url: '',
   logo_offset_x: null,
   sort_order: 0,
+  code: '', briefing_only: false,
 };
 
 const NEW_OPTION = '__new__';
@@ -181,10 +182,27 @@ export default function BrandEdit() {
               Ordem
               <input type="number" value={brand.sort_order} onChange={(e) => set('sort_order', Number(e.target.value))} />
             </label>
+            <label>
+              Sigla (nomenclatura de card/arquivo)
+              <input
+                value={brand.code || ''}
+                onChange={(e) => set('code', e.target.value.toUpperCase())}
+                placeholder="ex: CB, ESPN, ALAD"
+              />
+              <span className="hint">Usada para montar o nome padronizado do card/arquivo no briefing, ex: [CB]01-21_...</span>
+            </label>
           </div>
           <label>
             Descrição
             <textarea value={brand.description} onChange={(e) => set('description', e.target.value)} />
+          </label>
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={!!brand.briefing_only}
+              onChange={(e) => set('briefing_only', e.target.checked)}
+            />
+            Somente para briefing (não aparece na home pública do hub)
           </label>
 
           <h3>Logo</h3>

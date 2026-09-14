@@ -326,3 +326,14 @@ select option {
 .timeline__title { font-size: 13.5px; }
 .timeline__meta { color: var(--muted); font-size: 12px; margin-top: 2px; }
 .timeline__note { color: var(--paper); font-size: 13px; margin-top: 6px; padding: 8px 10px; border-radius: 8px; background: var(--fill); border: 1px solid var(--line); }
+
+.nomenclature-box {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 20px;
+  padding: 12px 16px; border-radius: 12px; border: 1px solid var(--line-strong); background: var(--mint-soft);
+}
+.nomenclature-box__label { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.nomenclature-box__value { font-family: ui-monospace, monospace; font-size: 13px; color: var(--paper); word-break: break-all; flex: 1; min-width: 200px; }
+.nomenclature-box .hint { flex-basis: 100%; margin: 0; }
+
+.form fieldset h3 { font-size: 14px; margin: 22px 0 -4px; color: var(--turq); }
+.form fieldset h3:first-of-type { margin-top: 4px; }
