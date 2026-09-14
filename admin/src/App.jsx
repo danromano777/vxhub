@@ -8,6 +8,8 @@ import BrandEdit from './pages/BrandEdit.jsx';
 import ClientSections from './pages/ClientSections.jsx';
 import SiteContent from './pages/SiteContent.jsx';
 import Users from './pages/Users.jsx';
+import Briefings from './pages/Briefings.jsx';
+import BriefingEdit from './pages/BriefingEdit.jsx';
 
 export default function App() {
   return (
@@ -27,6 +29,9 @@ export default function App() {
           <Route path="brands/:id" element={<BrandEdit />} />
           <Route path="brands/:id/sections" element={<ClientSections />} />
           <Route path="site-content" element={<SiteContent />} />
+          <Route path="briefings" element={<Briefings />} />
+          <Route path="briefings/new" element={<BriefingEdit />} />
+          <Route path="briefings/:id" element={<BriefingEdit />} />
           <Route
             path="users"
             element={

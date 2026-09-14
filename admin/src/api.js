@@ -82,6 +82,18 @@ export const api = {
   createUser: (data) => request('/users', { method: 'POST', body: data }),
   updateUser: (id, data) => request(`/users/${id}`, { method: 'PUT', body: data }),
   deleteUser: (id) => request(`/users/${id}`, { method: 'DELETE' }),
+
+  listBriefings: (params = {}) => {
+    const qs = new URLSearchParams(Object.fromEntries(Object.entries(params).filter(([, v]) => v)));
+    const suffix = qs.toString() ? `?${qs.toString()}` : '';
+    return request(`/briefings${suffix}`);
+  },
+  getBriefing: (id) => request(`/briefings/${id}`),
+  createBriefing: (data) => request('/briefings', { method: 'POST', body: data }),
+  updateBriefing: (id, data) => request(`/briefings/${id}`, { method: 'PUT', body: data }),
+  changeBriefingStatus: (id, status, note) =>
+    request(`/briefings/${id}/status`, { method: 'POST', body: { status, note } }),
+  deleteBriefing: (id) => request(`/briefings/${id}`, { method: 'DELETE' }),
 };
 
 export { getToken };

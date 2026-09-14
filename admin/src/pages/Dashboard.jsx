@@ -4,6 +4,7 @@ import { api } from '../api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { SiteContentPanel } from './SiteContent.jsx';
 import { UsersPanel } from './Users.jsx';
+import { BriefingsPanel } from './Briefings.jsx';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -30,6 +31,9 @@ export default function Dashboard() {
         <button className={`tab ${tab === 'conteudo' ? 'active' : ''}`} onClick={() => setTab('conteudo')}>
           📝 Conteúdo do Site
         </button>
+        <button className={`tab ${tab === 'briefings' ? 'active' : ''}`} onClick={() => setTab('briefings')}>
+          📋 Briefings
+        </button>
         {user.role === 'admin' && (
           <button className={`tab ${tab === 'usuarios' ? 'active' : ''}`} onClick={() => setTab('usuarios')}>
             👤 Usuários
@@ -39,6 +43,7 @@ export default function Dashboard() {
 
       {tab === 'clientes' && <ClientesTab brands={brands} canWrite={canWrite} onChange={load} />}
       {tab === 'conteudo' && <SiteContentPanel />}
+      {tab === 'briefings' && <BriefingsPanel />}
       {tab === 'usuarios' && user.role === 'admin' && <UsersPanel />}
     </div>
   );

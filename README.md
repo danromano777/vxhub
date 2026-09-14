@@ -101,11 +101,14 @@ O schema (`db/init/001_schema.sql`) cria as tabelas `users`, `brands`, `sections
 
 `sections` são as áreas de conteúdo de cada cliente (fixas ou criadas livremente pelo usuário). `blocks` são os itens dentro de uma seção — cada bloco tem um `block_type` (`image_download`, `video`, `font_card`, `color_palette`, `pdf_viewer`, `link_item` ou `code_snippet`) que determina quais campos são usados.
 
+`db/init/002_briefings.sql` cria as tabelas `briefings` (briefing de job vinculado opcionalmente a um cliente, com status `rascunho`/`enviado`/`em_revisao`/`aprovado`/`reprovado`) e `briefing_status_history` (histórico de cada mudança de status, com autor e nota). Esse script também roda automaticamente na primeira inicialização do container MySQL; se o banco já existir de uma versão anterior do projeto, rode o conteúdo do arquivo manualmente (`docker compose exec -T db mysql -u root -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" < db/init/002_briefings.sql`) para criar as tabelas sem perder os dados existentes.
+
 ## Painel admin
 
-O painel (`/admin`) tem 3 abas, todas na mesma tela (sem navegar pra outra URL):
+O painel (`/admin`) tem 4 abas, todas na mesma tela (sem navegar pra outra URL):
 - **Clientes**: lista de marcas com busca (nome/slug/grupo/filtro), filtros por Grupo e por Filtro, ordenação, logo (passe o mouse para trocar via upload) e ações de editar/excluir. "Editar cores" ajusta o gradiente do card (incluindo cor de fundo e o toggle "fundo claro").
 - **Conteúdo do Site**: título, subtítulo, descrição e logo da home pública.
+- **Briefings**: plataforma de briefing interna — criação de briefings de job (título, cliente, tipo de job, solicitante, prazo, orçamento, objetivo, público-alvo, mensagem-chave, referências), com filtro por status/cliente e uma tela de detalhe que permite avançar o status (rascunho → enviado → em revisão → aprovado/reprovado) registrando uma nota e mantendo o histórico completo de aprovação.
 - **Usuários**: gestão de contas do painel (somente para admins).
 
 Na edição de cada cliente (✎), Grupo e Filtro são escolhidos num menu suspenso com os valores já em uso (ou "+ Novo…" para cadastrar um valor novo), o logo aceita URL ou upload direto da máquina, e há um ajuste manual de centralização horizontal do logo para os casos em que a centralização automática não fica perfeita.
