@@ -105,6 +105,8 @@ O schema (`db/init/001_schema.sql`) cria as tabelas `users`, `brands`, `sections
 
 `db/init/003_briefing_nomenclature.sql` evolui o briefing para a estrutura completa usada pelo Agente de Briefings VX (contexto, objetivo, público, produto/serviço, mensagem/conceito, escopo, canais, referências, histórico, do's & don'ts, KPIs e pontos a apurar) e adiciona a sigla de cada marca (`brands.code`, ex: `CB`, `ESPN`, `ALAD`) usada para gerar automaticamente a nomenclatura padrão de card/arquivo da esteira ON+OFF+PRIO (`[SIGLA]mês-dia_NomeCampanha_Título_EST|VID_nPeças[_formato]`). Também cadastra (como `briefing_only = TRUE`, ou seja, disponíveis apenas no seletor de cliente do briefing e **fora** da home pública do hub) os demais clientes da esteira que ainda não existiam no hub: Aladdin, Casa Roberto Marinho, Coach ISM, Colicaliv, Costa Verde, Universo Herbarium, Globoplay, Globo Internacional, GNT, Megapix, Multishow, Musquee, Omater Gest, Oshadhi, Riberalves, Soter, Stanley, VX Portugal e Ecoponte.
 
+`db/init/004_prio_code.sql` define a sigla `PRIO` para o cliente Prio, que não estava na tabela de siglas do documento de nomenclatura (só era citado como equipe/time separado da esteira ON+OFF).
+
 Esses scripts rodam automaticamente na primeira inicialização do container MySQL (via `docker-entrypoint-initdb.d`); se o banco já existir de uma versão anterior do projeto, rode o conteúdo de cada arquivo novo manualmente, na ordem, por exemplo: `docker compose exec -T db mysql -u root -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" < db/init/003_briefing_nomenclature.sql` (sem perder os dados existentes).
 
 ## Painel admin
