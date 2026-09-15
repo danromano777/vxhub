@@ -109,6 +109,14 @@ O schema (`db/init/001_schema.sql`) cria as tabelas `users`, `brands`, `sections
 
 Esses scripts rodam automaticamente na primeira inicialização do container MySQL (via `docker-entrypoint-initdb.d`); se o banco já existir de uma versão anterior do projeto, rode o conteúdo de cada arquivo novo manualmente, na ordem, por exemplo: `docker compose exec -T db mysql -u root -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" < db/init/003_briefing_nomenclature.sql` (sem perder os dados existentes).
 
+## Extração de briefing por IA (opcional)
+
+Na tela de briefing existe uma caixa "Colar texto do cliente" onde dá pra colar um pedido recebido por WhatsApp, e-mail etc. e clicar em "Extrair para o formulário": o texto é enviado para a API da Anthropic (modelo `claude-opus-5`), que devolve só os campos que estavam explicitamente escritos no texto (nunca inventa informação) e preenche automaticamente os campos do formulário que ainda estavam vazios.
+
+Para habilitar, defina `ANTHROPIC_API_KEY` no `.env` (gere a chave em https://console.anthropic.com/) — sem ela, o botão continua visível mas retorna um aviso de que a extração por IA não está configurada. Cada clique gera uma chamada de API (custo pequeno, cobrado na conta da Anthropic vinculada à chave).
+
+**Áudio:** a API da Anthropic não faz transcrição de fala (não existe endpoint de speech-to-text no Claude) — então "jogar um áudio do cliente e virar texto" precisa de um provedor separado (ex: mesmo faz sentido usar algo como Whisper/OpenAI, Google Speech-to-Text, AssemblyAI ou Deepgram só para o passo de transcrição; o texto resultante aí sim pode ser colado na mesma caixa acima e extraído pela Anthropic). Isso ainda não foi implementado — avise se quiser seguir com algum desses provedores.
+
 ## Painel admin
 
 O painel (`/admin`) tem 4 abas, todas na mesma tela (sem navegar pra outra URL):

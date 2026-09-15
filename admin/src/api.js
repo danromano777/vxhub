@@ -94,6 +94,8 @@ export const api = {
   changeBriefingStatus: (id, status, note) =>
     request(`/briefings/${id}/status`, { method: 'POST', body: { status, note } }),
   deleteBriefing: (id) => request(`/briefings/${id}`, { method: 'DELETE' }),
+
+  extractBriefingText: (text) => request('/ai/extract-briefing', { method: 'POST', body: { text } }),
 };
 
 export { getToken };

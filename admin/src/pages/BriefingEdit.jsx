@@ -19,6 +19,12 @@ const emptyBriefing = {
 
 const VIDEO_CHANNEL_SUGGESTIONS = ['Feed', 'Reels', 'Stories', 'TikTok', 'YouTube'];
 
+const EXTRACT_MERGE_FIELDS = [
+  'title', 'campaign_name', 'requester_name', 'context', 'objective', 'target_audience',
+  'product_service', 'key_message', 'concept', 'scope', 'channels', 'references_text',
+  'dos_donts', 'budget', 'kpis', 'history_notes', 'open_points', 'notes', 'start_date', 'deadline',
+];
+
 function formatDateTime(value) {
   if (!value) return '';
   return new Date(value).toLocaleString('pt-BR');
@@ -82,6 +88,10 @@ export default function BriefingEdit() {
   const [newBrandCode, setNewBrandCode] = useState('');
   const [newBrandCodeTouched, setNewBrandCodeTouched] = useState(false);
   const [creatingBrand, setCreatingBrand] = useState(false);
+  const [pasteText, setPasteText] = useState('');
+  const [extracting, setExtracting] = useState(false);
+  const [extractMessage, setExtractMessage] = useState('');
+  const [extractError, setExtractError] = useState('');
 
   function load() {
     setPickerOpen(isNew);
@@ -255,6 +265,36 @@ export default function BriefingEdit() {
     }
   }
 
+  async function handleExtract() {
+    if (!pasteText.trim()) return;
+    setExtracting(true);
+    setExtractError('');
+    setExtractMessage('');
+    try {
+      const { fields } = await api.extractBriefingText(pasteText);
+      let filled = 0;
+      setBriefing((b) => {
+        const next = { ...b };
+        EXTRACT_MERGE_FIELDS.forEach((key) => {
+          const value = fields?.[key];
+          if (!value || next[key]) return;
+          next[key] = value;
+          filled += 1;
+        });
+        return next;
+      });
+      setExtractMessage(
+        filled > 0
+          ? `${filled} campo${filled > 1 ? 's' : ''} preenchido${filled > 1 ? 's' : ''} automaticamente — revise antes de salvar.`
+          : 'Não encontrei nenhuma informação nova pra preencher a partir desse texto.'
+      );
+    } catch (err) {
+      setExtractError(err.message);
+    } finally {
+      setExtracting(false);
+    }
+  }
+
   if (loading) return <p className="loading">Carregando…</p>;
   if (pickerOpen) return <TypePicker onPick={handlePickType} onCancel={isNew ? undefined : () => setPickerOpen(false)} />;
 
@@ -272,6 +312,23 @@ export default function BriefingEdit() {
       <div className="briefing-main">
       <form onSubmit={handleSave} className="form">
         <fieldset disabled={!canWrite}>
+          <div className="ai-extract-box">
+            <span className="ai-extract-box__label">✨ Colar texto do cliente (WhatsApp, e-mail...)</span>
+            <textarea
+              value={pasteText}
+              onChange={(e) => setPasteText(e.target.value)}
+              placeholder="Cole aqui o pedido que o cliente mandou — a IA preenche os campos vazios do formulário abaixo."
+              rows={4}
+            />
+            <div className="ai-extract-box__actions">
+              <button type="button" className="btn" onClick={handleExtract} disabled={!pasteText.trim() || extracting}>
+                {extracting ? 'Lendo texto…' : 'Extrair para o formulário'}
+              </button>
+              {extractMessage && <span className="ai-extract-box__msg">{extractMessage}</span>}
+            </div>
+            {extractError && <p className="error">{extractError}</p>}
+          </div>
+
           <h3>Identificação</h3>
           <div className="type-chip-row">
             <span className={`type-chip type-chip--${tier}`}>

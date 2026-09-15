@@ -343,6 +343,15 @@ select option {
 .type-picker-card__tier--avulso { background: var(--turq-soft); color: var(--turq); }
 .type-picker-card__tier--campanha { background: var(--lime-soft); color: var(--lime); }
 
+.ai-extract-box {
+  display: flex; flex-direction: column; gap: 10px; padding: 16px; margin-bottom: 6px;
+  border-radius: 14px; border: 1px dashed var(--line-strong); background: var(--lime-soft);
+}
+.ai-extract-box__label { font-size: 12.5px; font-weight: 700; color: var(--paper); }
+.ai-extract-box textarea { font-family: inherit; }
+.ai-extract-box__actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.ai-extract-box__msg { color: var(--mint); font-size: 12.5px; }
+
 .type-chip-row { display: flex; align-items: center; gap: 10px; margin-bottom: -4px; }
 .type-chip { padding: 5px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 700; }
 .type-chip--avulso { background: var(--turq-soft); color: var(--turq); }

@@ -39,6 +39,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL}
       SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
     ports:
       - "${APP_PORT:-3000}:3000"
     volumes:

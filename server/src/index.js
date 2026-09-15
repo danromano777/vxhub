@@ -10,6 +10,7 @@ import userRoutes from './routes/users.js';
 import publicRoutes from './routes/public.js';
 import siteContentRoutes from './routes/siteContent.js';
 import briefingRoutes from './routes/briefings.js';
+import aiRoutes from './routes/ai.js';
 import { seedAdmin } from './seed.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -25,6 +26,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/site-content', siteContentRoutes);
 app.use('/api/briefings', briefingRoutes);
+app.use('/api/ai', aiRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);
