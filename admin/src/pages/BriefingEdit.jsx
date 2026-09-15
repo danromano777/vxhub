@@ -44,6 +44,8 @@ export default function BriefingEdit() {
   const [changingStatus, setChangingStatus] = useState(false);
   const [addingBrand, setAddingBrand] = useState(false);
   const [newBrandName, setNewBrandName] = useState('');
+  const [newBrandCode, setNewBrandCode] = useState('');
+  const [newBrandCodeTouched, setNewBrandCodeTouched] = useState(false);
   const [creatingBrand, setCreatingBrand] = useState(false);
 
   function load() {
@@ -96,6 +98,15 @@ export default function BriefingEdit() {
     () => buildBriefingText({ briefing, brandName: selectedBrand?.name, brandCode: selectedBrand?.code }),
     [briefing, selectedBrand]
   );
+
+  useEffect(() => {
+    if (!addingBrand || newBrandCodeTouched) return;
+    setNewBrandCode(newBrandName.trim() ? suggestBrandCode(newBrandName, brands.map((b) => b.code)) : '');
+  }, [newBrandName, addingBrand, newBrandCodeTouched, brands]);
+
+  const newBrandCodeConflict =
+    !!newBrandCode.trim() &&
+    brands.some((b) => (b.code || '').toUpperCase() === newBrandCode.trim().toUpperCase());
 
   function set(field, value) {
     setBriefing((b) => ({ ...b, [field]: value }));
@@ -154,13 +165,17 @@ export default function BriefingEdit() {
     }
   }
 
-  const suggestedNewBrandCode = newBrandName.trim()
-    ? suggestBrandCode(newBrandName, brands.map((b) => b.code))
-    : '';
+  function closeAddBrand() {
+    setAddingBrand(false);
+    setNewBrandName('');
+    setNewBrandCode('');
+    setNewBrandCodeTouched(false);
+  }
 
   async function handleCreateBrand() {
     const name = newBrandName.trim();
-    if (!name) return;
+    const code = newBrandCode.trim().toUpperCase();
+    if (!name || !code || newBrandCodeConflict) return;
     setCreatingBrand(true);
     setError('');
     try {
@@ -171,7 +186,7 @@ export default function BriefingEdit() {
         brand_group: 'Clientes VX',
         filter_key: 'briefing',
         description: '',
-        code: suggestedNewBrandCode,
+        code,
         briefing_only: true,
         sort_order: 0,
       };
@@ -179,8 +194,7 @@ export default function BriefingEdit() {
       const updated = await api.listBrands();
       setBrands(updated);
       set('brand_id', String(r.id));
-      setAddingBrand(false);
-      setNewBrandName('');
+      closeAddBrand();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -253,19 +267,33 @@ export default function BriefingEdit() {
                     }
                   }}
                 />
-                {suggestedNewBrandCode && <span className="quick-add-brand__code">[{suggestedNewBrandCode}]</span>}
-                <button type="button" onClick={handleCreateBrand} disabled={!newBrandName.trim() || creatingBrand}>
-                  {creatingBrand ? 'Criando…' : 'Criar'}
-                </button>
+                <input
+                  className="quick-add-brand__code-input"
+                  value={newBrandCode}
+                  onChange={(e) => {
+                    setNewBrandCodeTouched(true);
+                    setNewBrandCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6));
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleCreateBrand();
+                    }
+                  }}
+                  placeholder="SIGLA"
+                  title="Sigla usada na nomenclatura do card/arquivo"
+                />
                 <button
                   type="button"
-                  onClick={() => {
-                    setAddingBrand(false);
-                    setNewBrandName('');
-                  }}
+                  onClick={handleCreateBrand}
+                  disabled={!newBrandName.trim() || !newBrandCode.trim() || newBrandCodeConflict || creatingBrand}
                 >
+                  {creatingBrand ? 'Criando…' : 'Criar'}
+                </button>
+                <button type="button" onClick={closeAddBrand}>
                   Cancelar
                 </button>
+                {newBrandCodeConflict && <p className="hint quick-add-brand__error">Essa sigla já está em uso por outro cliente.</p>}
               </div>
             )}
             <label>

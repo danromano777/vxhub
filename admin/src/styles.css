@@ -363,12 +363,14 @@ select option {
   flex: 1; min-width: 180px; padding: 9px 11px; border-radius: 8px; border: 1px solid var(--line);
   background: var(--fill); color: var(--paper);
 }
-.quick-add-brand__code {
-  font-family: ui-monospace, monospace; font-size: 12px; color: var(--turq);
-  background: var(--turq-soft); padding: 4px 9px; border-radius: 999px; white-space: nowrap;
+.quick-add-brand__code-input {
+  width: 90px; flex: 0 0 auto; font-family: ui-monospace, monospace; text-transform: uppercase;
+  text-align: center; letter-spacing: .04em;
 }
 .quick-add-brand button {
   padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line); background: transparent;
   color: var(--paper); cursor: pointer; font-size: 13px;
 }
 .quick-add-brand button:first-of-type { background: var(--accent-grad); color: var(--accent-ink); border: 0; font-weight: 700; }
+.quick-add-brand button:disabled { opacity: .5; cursor: not-allowed; }
+.quick-add-brand__error { flex-basis: 100%; color: var(--red); margin: 0; }
