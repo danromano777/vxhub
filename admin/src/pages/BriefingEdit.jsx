@@ -265,6 +265,25 @@ export default function BriefingEdit() {
     }
   }
 
+  function mergeExtractedFields(fields) {
+    let filled = 0;
+    setBriefing((b) => {
+      const next = { ...b };
+      EXTRACT_MERGE_FIELDS.forEach((key) => {
+        const value = fields?.[key];
+        if (!value || next[key]) return;
+        next[key] = value;
+        filled += 1;
+      });
+      return next;
+    });
+    setExtractMessage(
+      filled > 0
+        ? `${filled} campo${filled > 1 ? 's' : ''} preenchido${filled > 1 ? 's' : ''} automaticamente — revise antes de salvar.`
+        : 'Não encontrei nenhuma informação nova pra preencher a partir desse material.'
+    );
+  }
+
   async function handleExtract() {
     if (!pasteText.trim()) return;
     setExtracting(true);
@@ -272,22 +291,29 @@ export default function BriefingEdit() {
     setExtractMessage('');
     try {
       const { fields } = await api.extractBriefingText(pasteText);
-      let filled = 0;
-      setBriefing((b) => {
-        const next = { ...b };
-        EXTRACT_MERGE_FIELDS.forEach((key) => {
-          const value = fields?.[key];
-          if (!value || next[key]) return;
-          next[key] = value;
-          filled += 1;
-        });
-        return next;
-      });
-      setExtractMessage(
-        filled > 0
-          ? `${filled} campo${filled > 1 ? 's' : ''} preenchido${filled > 1 ? 's' : ''} automaticamente — revise antes de salvar.`
-          : 'Não encontrei nenhuma informação nova pra preencher a partir desse texto.'
-      );
+      mergeExtractedFields(fields);
+    } catch (err) {
+      setExtractError(err.message);
+    } finally {
+      setExtracting(false);
+    }
+  }
+
+  async function handleExtractFile(e) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (file.type.startsWith('audio/') || file.type.startsWith('video/')) {
+      setExtractError('Áudio e vídeo ainda não são suportados: a API da Anthropic não transcreve fala. Transcreva em outra ferramenta e cole o texto acima.');
+      setExtractMessage('');
+      return;
+    }
+    setExtracting(true);
+    setExtractError('');
+    setExtractMessage('');
+    try {
+      const { fields } = await api.extractBriefingFile(file);
+      mergeExtractedFields(fields);
     } catch (err) {
       setExtractError(err.message);
     } finally {
@@ -322,10 +348,24 @@ export default function BriefingEdit() {
             />
             <div className="ai-extract-box__actions">
               <button type="button" className="btn" onClick={handleExtract} disabled={!pasteText.trim() || extracting}>
-                {extracting ? 'Lendo texto…' : 'Extrair para o formulário'}
+                {extracting ? 'Lendo…' : 'Extrair texto colado'}
               </button>
+              <span className="ai-extract-box__or">ou</span>
+              <label className="ghost-btn ai-extract-box__upload">
+                {extracting ? 'Lendo…' : '📎 Enviar imagem/PDF/print'}
+                <input
+                  type="file"
+                  hidden
+                  accept="image/png,image/jpeg,image/webp,image/gif,application/pdf"
+                  onChange={handleExtractFile}
+                  disabled={extracting}
+                />
+              </label>
               {extractMessage && <span className="ai-extract-box__msg">{extractMessage}</span>}
             </div>
+            <p className="hint">
+              Aceita print de conversa, PDF do pedido, imagem etc. Áudio ainda não é suportado — transcreva antes e cole o texto.
+            </p>
             {extractError && <p className="error">{extractError}</p>}
           </div>
 

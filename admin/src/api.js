@@ -96,6 +96,7 @@ export const api = {
   deleteBriefing: (id) => request(`/briefings/${id}`, { method: 'DELETE' }),
 
   extractBriefingText: (text) => request('/ai/extract-briefing', { method: 'POST', body: { text } }),
+  extractBriefingFile: (file) => uploadFile('/ai/extract-briefing-file', 'file', file),
 };
 
 export { getToken };

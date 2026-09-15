@@ -111,9 +111,15 @@ Esses scripts rodam automaticamente na primeira inicialização do container MyS
 
 ## Extração de briefing por IA (opcional)
 
-Na tela de briefing existe uma caixa "Colar texto do cliente" onde dá pra colar um pedido recebido por WhatsApp, e-mail etc. e clicar em "Extrair para o formulário": o texto é enviado para a API da Anthropic (modelo `claude-opus-5`), que devolve só os campos que estavam explicitamente escritos no texto (nunca inventa informação) e preenche automaticamente os campos do formulário que ainda estavam vazios.
+Na tela de briefing existe uma caixa "Colar texto do cliente" com duas formas de preencher o formulário automaticamente:
+- **Colar texto** (WhatsApp, e-mail etc.) e clicar em "Extrair texto colado".
+- **Enviar um arquivo** (imagem, print de conversa ou PDF do pedido) pelo botão "📎 Enviar imagem/PDF/print".
 
-Para habilitar, defina `ANTHROPIC_API_KEY` no `.env` (gere a chave em https://console.anthropic.com/) — sem ela, o botão continua visível mas retorna um aviso de que a extração por IA não está configurada. Cada clique gera uma chamada de API (custo pequeno, cobrado na conta da Anthropic vinculada à chave).
+Em ambos os casos o conteúdo é enviado para a API da Anthropic (modelo `claude-opus-5`, `POST /api/ai/extract-briefing` ou `/api/ai/extract-briefing-file`), que devolve só os campos explicitamente presentes no material (nunca inventa informação) e preenche automaticamente os campos do formulário que ainda estavam vazios.
+
+**Áudio e vídeo não são suportados** — a API da Anthropic não transcreve fala, então o upload rejeita esses tipos com uma mensagem explicando que é preciso transcrever em outra ferramenta antes e colar o texto resultante.
+
+Para habilitar, defina `ANTHROPIC_API_KEY` no `.env` (gere a chave em https://console.anthropic.com/) — sem ela, os botões continuam visíveis mas retornam um aviso de que a extração por IA não está configurada. Cada extração gera uma chamada de API (custo pequeno, cobrado na conta da Anthropic vinculada à chave).
 
 **Áudio:** a API da Anthropic não faz transcrição de fala (não existe endpoint de speech-to-text no Claude) — então "jogar um áudio do cliente e virar texto" precisa de um provedor separado (ex: mesmo faz sentido usar algo como Whisper/OpenAI, Google Speech-to-Text, AssemblyAI ou Deepgram só para o passo de transcrição; o texto resultante aí sim pode ser colado na mesma caixa acima e extraído pela Anthropic). Isso ainda não foi implementado — avise se quiser seguir com algum desses provedores.
 
