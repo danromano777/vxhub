@@ -23,6 +23,14 @@ const upload = multer({
   limits: { fileSize: 15 * 1024 * 1024 },
 });
 
+// Whisper aceita ate 25MB por arquivo
+const audioUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024 },
+});
+
+const OPENAI_TRANSCRIPTION_URL = 'https://api.openai.com/v1/audio/transcriptions';
+
 const ExtractionSchema = z.object({
   title: z.string().optional().describe('Título curto do job/projeto'),
   campaign_name: z.string().optional().describe('Nome da campanha, se houver'),
@@ -115,8 +123,8 @@ router.post('/extract-briefing-file', CAN_WRITE, upload.single('file'), async (r
   const mime = req.file.mimetype;
   if (mime.startsWith('audio/') || mime.startsWith('video/')) {
     return res.status(415).json({
-      error: 'Áudio e vídeo ainda não são suportados: a API da Anthropic não transcreve fala. ' +
-        'Transcreva o áudio em outra ferramenta e cole o texto na caixa acima.',
+      error: 'Áudio e vídeo não passam por aqui: use "Enviar arquivo" com um áudio, que primeiro transcreve ' +
+        '(via Whisper) e depois extrai os campos automaticamente.',
     });
   }
   if (!ACCEPTED_MIME_TYPES.includes(mime)) {
@@ -139,6 +147,39 @@ router.post('/extract-briefing-file', CAN_WRITE, upload.single('file'), async (r
     res.json({ fields });
   } catch (err) {
     if (!handleAnthropicError(err, res)) throw err;
+  }
+});
+
+router.post('/transcribe-audio', CAN_WRITE, audioUpload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Envie um arquivo de áudio antes de transcrever' });
+  if (!req.file.mimetype.startsWith('audio/')) {
+    return res.status(415).json({ error: `Tipo de arquivo não é áudio (${req.file.mimetype}).` });
+  }
+  if (!process.env.OPENAI_API_KEY) {
+    return res.status(503).json({ error: 'Transcrição de áudio não configurada: defina OPENAI_API_KEY no servidor' });
+  }
+
+  try {
+    const form = new FormData();
+    form.append('file', new Blob([req.file.buffer], { type: req.file.mimetype }), req.file.originalname || 'audio');
+    form.append('model', 'whisper-1');
+
+    const openaiRes = await fetch(OPENAI_TRANSCRIPTION_URL, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+      body: form,
+    });
+
+    if (!openaiRes.ok) {
+      const errBody = await openaiRes.json().catch(() => ({}));
+      const message = errBody?.error?.message || `Erro ${openaiRes.status} ao transcrever o áudio`;
+      return res.status(502).json({ error: message });
+    }
+
+    const { text } = await openaiRes.json();
+    res.json({ text: text || '' });
+  } catch (err) {
+    res.status(502).json({ error: `Erro ao transcrever o áudio: ${err.message}` });
   }
 });
 

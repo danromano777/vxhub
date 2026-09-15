@@ -97,6 +97,7 @@ export const api = {
 
   extractBriefingText: (text) => request('/ai/extract-briefing', { method: 'POST', body: { text } }),
   extractBriefingFile: (file) => uploadFile('/ai/extract-briefing-file', 'file', file),
+  transcribeAudio: (file) => uploadFile('/ai/transcribe-audio', 'file', file),
 };
 
 export { getToken };

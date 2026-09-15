@@ -111,13 +111,20 @@ Esses scripts rodam automaticamente na primeira inicialização do container MyS
 
 ## Extração de briefing por IA (opcional)
 
-Na tela de briefing existe uma caixa "Colar texto do cliente" com duas formas de preencher o formulário automaticamente:
+Na tela de briefing existe uma caixa "Colar texto do cliente" com três formas de preencher o formulário automaticamente:
 - **Colar texto** (WhatsApp, e-mail etc.) e clicar em "Extrair texto colado".
-- **Enviar um arquivo** (imagem, print de conversa ou PDF do pedido) pelo botão "📎 Enviar imagem/PDF/print".
+- **Enviar um arquivo de imagem ou PDF** (print de conversa, pedido em PDF) pelo botão "📎 Enviar arquivo".
+- **Enviar um áudio** (nota de voz do WhatsApp etc.) pelo mesmo botão — é transcrito automaticamente e depois extraído, em uma única ação.
 
-Em ambos os casos o conteúdo é enviado para a API da Anthropic (modelo `claude-opus-5`, `POST /api/ai/extract-briefing` ou `/api/ai/extract-briefing-file`), que devolve só os campos explicitamente presentes no material (nunca inventa informação) e preenche automaticamente os campos do formulário que ainda estavam vazios.
+Texto, imagem e PDF vão direto para a API da Anthropic (modelo `claude-opus-5`, `POST /api/ai/extract-briefing` ou `/api/ai/extract-briefing-file`), que devolve só os campos explicitamente presentes no material (nunca inventa informação) e preenche automaticamente os campos do formulário que ainda estavam vazios.
 
-**Áudio e vídeo não são suportados** — a API da Anthropic não transcreve fala, então o upload rejeita esses tipos com uma mensagem explicando que é preciso transcrever em outra ferramenta antes e colar o texto resultante.
+**Áudio** passa primeiro pela OpenAI (Whisper, `POST /api/ai/transcribe-audio`) para virar texto — a API da Anthropic não faz transcrição de fala — e o texto resultante entra na caixa de colar texto (você pode revisar/editar) antes de seguir automaticamente para a extração de campos. Vídeo continua sem suporte.
+
+Para habilitar cada parte, defina no `.env`:
+- `ANTHROPIC_API_KEY` (extração de texto/imagem/PDF) — https://console.anthropic.com/
+- `OPENAI_API_KEY` (transcrição de áudio via Whisper) — https://platform.openai.com/api-keys
+
+Sem alguma dessas chaves, o botão correspondente continua visível mas retorna um aviso de que aquela etapa não está configurada, em vez de falhar silenciosamente. Cada extração/transcrição gera uma chamada de API paga na conta vinculada à respectiva chave.
 
 Para habilitar, defina `ANTHROPIC_API_KEY` no `.env` (gere a chave em https://console.anthropic.com/) — sem ela, os botões continuam visíveis mas retornam um aviso de que a extração por IA não está configurada. Cada extração gera uma chamada de API (custo pequeno, cobrado na conta da Anthropic vinculada à chave).
 

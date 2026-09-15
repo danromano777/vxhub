@@ -303,8 +303,8 @@ export default function BriefingEdit() {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
-    if (file.type.startsWith('audio/') || file.type.startsWith('video/')) {
-      setExtractError('Áudio e vídeo ainda não são suportados: a API da Anthropic não transcreve fala. Transcreva em outra ferramenta e cole o texto acima.');
+    if (file.type.startsWith('video/')) {
+      setExtractError('Vídeo ainda não é suportado — envie um áudio, imagem ou PDF.');
       setExtractMessage('');
       return;
     }
@@ -312,8 +312,17 @@ export default function BriefingEdit() {
     setExtractError('');
     setExtractMessage('');
     try {
-      const { fields } = await api.extractBriefingFile(file);
-      mergeExtractedFields(fields);
+      if (file.type.startsWith('audio/')) {
+        setExtractMessage('Transcrevendo áudio…');
+        const { text } = await api.transcribeAudio(file);
+        setPasteText(text);
+        setExtractMessage('Áudio transcrito — extraindo campos…');
+        const { fields } = await api.extractBriefingText(text);
+        mergeExtractedFields(fields);
+      } else {
+        const { fields } = await api.extractBriefingFile(file);
+        mergeExtractedFields(fields);
+      }
     } catch (err) {
       setExtractError(err.message);
     } finally {
@@ -352,11 +361,11 @@ export default function BriefingEdit() {
               </button>
               <span className="ai-extract-box__or">ou</span>
               <label className="ghost-btn ai-extract-box__upload">
-                {extracting ? 'Lendo…' : '📎 Enviar imagem/PDF/print'}
+                {extracting ? 'Lendo…' : '📎 Enviar arquivo'}
                 <input
                   type="file"
                   hidden
-                  accept="image/png,image/jpeg,image/webp,image/gif,application/pdf"
+                  accept="image/png,image/jpeg,image/webp,image/gif,application/pdf,audio/*"
                   onChange={handleExtractFile}
                   disabled={extracting}
                 />
@@ -364,7 +373,7 @@ export default function BriefingEdit() {
               {extractMessage && <span className="ai-extract-box__msg">{extractMessage}</span>}
             </div>
             <p className="hint">
-              Aceita print de conversa, PDF do pedido, imagem etc. Áudio ainda não é suportado — transcreva antes e cole o texto.
+              Aceita print de conversa, PDF do pedido, imagem ou áudio (transcrito automaticamente antes de extrair).
             </p>
             {extractError && <p className="error">{extractError}</p>}
           </div>
