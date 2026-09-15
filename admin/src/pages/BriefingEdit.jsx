@@ -4,6 +4,7 @@ import { api } from '../api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { buildNomenclature, slugify, suggestBrandCode } from '../lib/nomenclature.js';
 import { buildBriefingText } from '../lib/briefingText.js';
+import { JOB_TYPES, getJobTypeTier } from '../lib/jobTypes.js';
 import { STATUS_LABELS, STATUS_ORDER, StatusBadge } from './Briefings.jsx';
 
 const NEW_CLIENT_OPTION = '__new_client__';
@@ -16,12 +17,45 @@ const emptyBriefing = {
   piece_format: 'EST', piece_count: 1, video_channel: '',
 };
 
-const JOB_TYPE_SUGGESTIONS = ['Post social', 'Vídeo', 'Campanha', 'Evento', 'Key visual', 'Release', 'E-mail marketing', 'Website'];
 const VIDEO_CHANNEL_SUGGESTIONS = ['Feed', 'Reels', 'Stories', 'TikTok', 'YouTube'];
 
 function formatDateTime(value) {
   if (!value) return '';
   return new Date(value).toLocaleString('pt-BR');
+}
+
+function TypePicker({ onPick, onCancel }) {
+  return (
+    <div>
+      {onCancel ? (
+        <button type="button" className="backlink" onClick={onCancel}>
+          ← Cancelar
+        </button>
+      ) : (
+        <Link to="/" className="backlink">
+          ← Voltar
+        </Link>
+      )}
+      <div className="page__head">
+        <h1>{onCancel ? 'Trocar tipo de briefing' : 'Novo briefing'}</h1>
+      </div>
+      <p className="hint" style={{ marginBottom: 18 }}>
+        Escolha o tipo de job. Isso define quais campos o formulário vai pedir — jobs avulsos (post, vídeo, trinca,
+        vaga) pedem só o essencial; KV e campanha pedem o briefing completo.
+      </p>
+      <div className="type-picker-grid">
+        {JOB_TYPES.map((t) => (
+          <button key={t.key} type="button" className="type-picker-card" onClick={() => onPick(t)}>
+            <span className={`type-picker-card__tier type-picker-card__tier--${t.tier}`}>
+              {t.tier === 'avulso' ? 'Job avulso' : 'Campanha'}
+            </span>
+            <span className="type-picker-card__label">{t.label}</span>
+            <span className="type-picker-card__desc">{t.description}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export default function BriefingEdit() {
@@ -32,6 +66,7 @@ export default function BriefingEdit() {
   const canWrite = user.role === 'admin' || user.role === 'editor';
 
   const [briefing, setBriefing] = useState(emptyBriefing);
+  const [pickerOpen, setPickerOpen] = useState(isNew);
   const [history, setHistory] = useState([]);
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(!isNew);
@@ -49,7 +84,11 @@ export default function BriefingEdit() {
   const [creatingBrand, setCreatingBrand] = useState(false);
 
   function load() {
-    if (isNew) return;
+    setPickerOpen(isNew);
+    if (isNew) {
+      setBriefing(emptyBriefing);
+      return;
+    }
     setLoading(true);
     api
       .getBriefing(id)
@@ -74,6 +113,10 @@ export default function BriefingEdit() {
   useEffect(() => {
     api.listBrands().then(setBrands).catch(() => {});
   }, []);
+
+  const tier = getJobTypeTier(briefing.job_type);
+  const isCampanha = tier === 'campanha';
+  const currentType = JOB_TYPES.find((t) => t.label === briefing.job_type);
 
   const selectedBrand = useMemo(
     () => brands.find((b) => String(b.id) === String(briefing.brand_id)),
@@ -110,6 +153,16 @@ export default function BriefingEdit() {
 
   function set(field, value) {
     setBriefing((b) => ({ ...b, [field]: value }));
+  }
+
+  function handlePickType(type) {
+    setBriefing((b) => ({
+      ...b,
+      job_type: type.label,
+      piece_format: type.defaultFormat,
+      piece_count: type.defaultCount,
+    }));
+    setPickerOpen(false);
   }
 
   async function handleSave(e) {
@@ -203,6 +256,7 @@ export default function BriefingEdit() {
   }
 
   if (loading) return <p className="loading">Carregando…</p>;
+  if (pickerOpen) return <TypePicker onPick={handlePickType} onCancel={isNew ? undefined : () => setPickerOpen(false)} />;
 
   return (
     <div>
@@ -218,7 +272,17 @@ export default function BriefingEdit() {
       <div className="briefing-main">
       <form onSubmit={handleSave} className="form">
         <fieldset disabled={!canWrite}>
-          <h3>1. Identificação</h3>
+          <h3>Identificação</h3>
+          <div className="type-chip-row">
+            <span className={`type-chip type-chip--${tier}`}>
+              {currentType ? currentType.label : briefing.job_type || 'Sem tipo'}
+            </span>
+            {canWrite && (
+              <button type="button" className="link-btn" onClick={() => setPickerOpen(true)}>
+                Trocar tipo
+              </button>
+            )}
+          </div>
           <div className="grid2">
             <label>
               Título/Projeto <input value={briefing.title} onChange={(e) => set('title', e.target.value)} required />
@@ -297,20 +361,6 @@ export default function BriefingEdit() {
               </div>
             )}
             <label>
-              Tipo de job
-              <input
-                value={briefing.job_type}
-                onChange={(e) => set('job_type', e.target.value)}
-                list="job-type-suggestions"
-                placeholder="ex: Post social, Vídeo, Campanha…"
-              />
-              <datalist id="job-type-suggestions">
-                {JOB_TYPE_SUGGESTIONS.map((t) => (
-                  <option key={t} value={t} />
-                ))}
-              </datalist>
-            </label>
-            <label>
               Tamanho estimado
               <select value={briefing.job_size || ''} onChange={(e) => set('job_size', e.target.value)}>
                 <option value="">Não definido</option>
@@ -325,41 +375,53 @@ export default function BriefingEdit() {
             </label>
           </div>
 
-          <h3>2. Contexto</h3>
-          <label>
-            O que motivou esse job? Oportunidade, urgência, sazonalidade, histórico relevante…
-            <textarea value={briefing.context} onChange={(e) => set('context', e.target.value)} />
-          </label>
+          {isCampanha && (
+            <>
+              <h3>Contexto</h3>
+              <label>
+                O que motivou esse job? Oportunidade, urgência, sazonalidade, histórico relevante…
+                <textarea value={briefing.context} onChange={(e) => set('context', e.target.value)} />
+              </label>
+            </>
+          )}
 
-          <h3>3. Objetivo</h3>
+          <h3>Objetivo</h3>
           <label>
             Objetivo principal e objetivos específicos
             <textarea value={briefing.objective} onChange={(e) => set('objective', e.target.value)} />
           </label>
 
-          <h3>4. Público-alvo</h3>
+          <h3>Público-alvo</h3>
           <label>
-            Demográfico, comportamental, psicográfico e geográfico
+            {isCampanha
+              ? 'Demográfico, comportamental, psicográfico e geográfico'
+              : 'Pra quem é essa peça'}
             <textarea value={briefing.target_audience} onChange={(e) => set('target_audience', e.target.value)} />
           </label>
 
-          <h3>5. Produto / Serviço</h3>
-          <label>
-            O que será divulgado, diferenciais, benefícios, oferta/condições
-            <textarea value={briefing.product_service} onChange={(e) => set('product_service', e.target.value)} />
-          </label>
+          {isCampanha && (
+            <>
+              <h3>Produto / Serviço</h3>
+              <label>
+                O que será divulgado, diferenciais, benefícios, oferta/condições
+                <textarea value={briefing.product_service} onChange={(e) => set('product_service', e.target.value)} />
+              </label>
+            </>
+          )}
 
-          <h3>6. Mensagem e conceito</h3>
+          <h3>Mensagem{isCampanha ? ' e conceito' : ''}</h3>
           <label>
             Mensagem principal
             <textarea value={briefing.key_message} onChange={(e) => set('key_message', e.target.value)} />
           </label>
-          <label>
-            Conceito criativo / tom de voz
-            <textarea value={briefing.concept} onChange={(e) => set('concept', e.target.value)} placeholder="Se ainda não houver conceito definido, escreva: CONCEITO A DEFINIR" />
-          </label>
+          {isCampanha && (
+            <label>
+              Conceito criativo / tom de voz
+              <textarea value={briefing.concept} onChange={(e) => set('concept', e.target.value)} placeholder="Se ainda não houver conceito definido, escreva: CONCEITO A DEFINIR" />
+            </label>
+          )}
 
-          <h3>7. Escopo e entregáveis</h3>
+          <h3>Escopo e entregáveis</h3>
           <label>
             Peças, quantidade, formatos, versões, adaptações
             <textarea value={briefing.scope} onChange={(e) => set('scope', e.target.value)} />
@@ -399,55 +461,73 @@ export default function BriefingEdit() {
             )}
           </div>
 
-          <h3>8. Canais</h3>
-          <label>
-            Onde a comunicação será veiculada (Instagram, site, e-mail, mídia paga, OOH…)
-            <textarea value={briefing.channels} onChange={(e) => set('channels', e.target.value)} />
-          </label>
+          {isCampanha && (
+            <>
+              <h3>Canais</h3>
+              <label>
+                Onde a comunicação será veiculada (Instagram, site, e-mail, mídia paga, OOH…)
+                <textarea value={briefing.channels} onChange={(e) => set('channels', e.target.value)} />
+              </label>
+            </>
+          )}
 
-          <h3>9. Referências</h3>
+          <h3>Referências</h3>
           <label>
             Links, materiais de inspiração, briefings anteriores — e o que exatamente chamou atenção em cada uma
             <textarea value={briefing.references_text} onChange={(e) => set('references_text', e.target.value)} />
           </label>
 
-          <h3>10. Histórico</h3>
-          <label>
-            Campanhas/jobs anteriores, o que funcionou, aprendizados, restrições já conhecidas
-            <textarea value={briefing.history_notes} onChange={(e) => set('history_notes', e.target.value)} />
-          </label>
+          {isCampanha && (
+            <>
+              <h3>Histórico</h3>
+              <label>
+                Campanhas/jobs anteriores, o que funcionou, aprendizados, restrições já conhecidas
+                <textarea value={briefing.history_notes} onChange={(e) => set('history_notes', e.target.value)} />
+              </label>
+            </>
+          )}
 
-          <h3>11. Prazos</h3>
+          <h3>Prazo{isCampanha ? 's' : ''}</h3>
           <div className="grid2">
-            <label>
-              Início
-              <input type="date" value={briefing.start_date} onChange={(e) => set('start_date', e.target.value)} />
-            </label>
+            {isCampanha && (
+              <label>
+                Início
+                <input type="date" value={briefing.start_date} onChange={(e) => set('start_date', e.target.value)} />
+              </label>
+            )}
             <label>
               Entrega final
               <input type="date" value={briefing.deadline} onChange={(e) => set('deadline', e.target.value)} />
             </label>
           </div>
 
-          <h3>12. Orçamento</h3>
-          <label>
-            Verba disponível (deixe em branco e anote "A APURAR" se ainda não houver definição)
-            <input value={briefing.budget} onChange={(e) => set('budget', e.target.value)} placeholder="ex: R$ 5.000 ou A APURAR" />
-          </label>
+          {isCampanha && (
+            <>
+              <h3>Orçamento</h3>
+              <label>
+                Verba disponível (deixe em branco e anote "A APURAR" se ainda não houver definição)
+                <input value={briefing.budget} onChange={(e) => set('budget', e.target.value)} placeholder="ex: R$ 5.000 ou A APURAR" />
+              </label>
+            </>
+          )}
 
-          <h3>13. Do's &amp; Don'ts</h3>
+          <h3>Do's &amp; Don'ts</h3>
           <label>
             Obrigatoriedades e restrições (palavras/imagens proibidas, cores, concorrentes que não podem ser citados…)
             <textarea value={briefing.dos_donts} onChange={(e) => set('dos_donts', e.target.value)} />
           </label>
 
-          <h3>15. KPIs</h3>
-          <label>
-            Metas, KPIs e como o sucesso será medido
-            <textarea value={briefing.kpis} onChange={(e) => set('kpis', e.target.value)} />
-          </label>
+          {isCampanha && (
+            <>
+              <h3>KPIs</h3>
+              <label>
+                Metas, KPIs e como o sucesso será medido
+                <textarea value={briefing.kpis} onChange={(e) => set('kpis', e.target.value)} />
+              </label>
+            </>
+          )}
 
-          <h3>16. Pontos a apurar</h3>
+          <h3>Pontos a apurar</h3>
           <label>
             O que ainda falta confirmar com o cliente (separe por criticidade quando possível: crítico, importante, recomendado)
             <textarea value={briefing.open_points} onChange={(e) => set('open_points', e.target.value)} />
@@ -468,7 +548,7 @@ export default function BriefingEdit() {
 
       {!isNew && (
         <div className="section">
-          <h2>14. Aprovações — status do briefing</h2>
+          <h2>Aprovações — status do briefing</h2>
           {canWrite && (
             <div className="status-changer">
               <select value={statusDraft} onChange={(e) => setStatusDraft(e.target.value)}>

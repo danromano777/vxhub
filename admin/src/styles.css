@@ -330,6 +330,24 @@ select option {
 .form fieldset h3 { font-size: 14px; margin: 22px 0 -4px; color: var(--turq); }
 .form fieldset h3:first-of-type { margin-top: 4px; }
 
+.type-picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+.type-picker-card {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px; text-align: left;
+  padding: 18px; border-radius: 14px; border: 1px solid var(--line); background: var(--fill);
+  color: var(--paper); cursor: pointer; font-family: inherit;
+}
+.type-picker-card:hover { border-color: var(--line-strong); background: var(--fill-hover); }
+.type-picker-card__label { font-weight: 700; font-size: 15px; }
+.type-picker-card__desc { color: var(--muted); font-size: 12.5px; }
+.type-picker-card__tier { align-self: flex-start; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+.type-picker-card__tier--avulso { background: var(--turq-soft); color: var(--turq); }
+.type-picker-card__tier--campanha { background: var(--lime-soft); color: var(--lime); }
+
+.type-chip-row { display: flex; align-items: center; gap: 10px; margin-bottom: -4px; }
+.type-chip { padding: 5px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 700; }
+.type-chip--avulso { background: var(--turq-soft); color: var(--turq); }
+.type-chip--campanha { background: var(--lime-soft); color: var(--lime); }
+
 .briefing-layout { display: grid; grid-template-columns: 1fr 340px; gap: 24px; align-items: start; }
 .briefing-side { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 16px; }
 @media (max-width: 900px) {
