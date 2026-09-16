@@ -127,6 +127,8 @@ export default function BriefingEdit() {
   const tier = getJobTypeTier(briefing.job_type);
   const isCampanha = tier === 'campanha';
   const currentType = JOB_TYPES.find((t) => t.label === briefing.job_type);
+  const hideCardName = !!currentType?.noCardName;
+  const isRefacao = currentType?.key === 'refacao';
 
   const selectedBrand = useMemo(
     () => brands.find((b) => String(b.id) === String(briefing.brand_id)),
@@ -394,11 +396,11 @@ export default function BriefingEdit() {
               Título/Projeto <input value={briefing.title} onChange={(e) => set('title', e.target.value)} required />
             </label>
             <label>
-              Nome da campanha (nomenclatura)
+              {hideCardName ? 'Card/peça original (nome ou link)' : 'Nome da campanha (nomenclatura)'}
               <input
                 value={briefing.campaign_name}
                 onChange={(e) => set('campaign_name', e.target.value)}
-                placeholder="ex: Receita, NovosEpisodios…"
+                placeholder={hideCardName ? 'ex: [CB]09-10_Post_Novidade_EST_1P ou link do Trello' : 'ex: Receita, NovosEpisodios…'}
               />
             </label>
             <label>
@@ -527,11 +529,36 @@ export default function BriefingEdit() {
             </label>
           )}
 
-          <h3>Escopo e entregáveis</h3>
+          <h3>{hideCardName ? (isRefacao ? 'Direcionamento da refação' : 'Detalhe do ajuste') : 'Escopo e entregáveis'}</h3>
           <label>
-            Peças, quantidade, formatos, versões, adaptações
-            <textarea value={briefing.scope} onChange={(e) => set('scope', e.target.value)} />
+            {hideCardName
+              ? isRefacao
+                ? 'O que precisamos alcançar — não como o designer deve montar a peça'
+                : "Seja objetivo: onde está o problema e o que precisa ser feito. Em carrossel, use \"Tela\", nunca \"Card\""
+              : 'Peças, quantidade, formatos, versões, adaptações'}
+            <textarea
+              value={briefing.scope}
+              onChange={(e) => set('scope', e.target.value)}
+              placeholder={
+                hideCardName
+                  ? isRefacao
+                    ? 'Refação: criar uma nova proposta visual, mantendo o conceito e as informações obrigatórias. Buscar uma abordagem mais [moderna/institucional/impactante/etc.].'
+                    : 'Tela 1: ajustar frase de "X" para "Y".\nTela 2: trocar imagem atual por uma imagem de [descrição].\nTela 3: aumentar o logo e centralizar na composição.'
+                  : undefined
+              }
+            />
           </label>
+          {hideCardName && (
+            <p className="hint">
+              Vocabulário padrão: <strong>Tela</strong> (não Card) · <strong>Ajustar</strong> (não Arrumar/Alterar/Mexer/Trocar)
+              {isRefacao && (
+                <>
+                  {' '}· <strong>Refação</strong> (não "ajustar tudo"/"nova proposta"/"fazer diferente"/"criar do zero")
+                </>
+              )}
+              {' '}· <strong>Manter</strong> (não Deixar) · <strong>Remover</strong> (não Tirar)
+            </p>
+          )}
           <div className="grid2">
             <label>
               Formato da peça (nomenclatura)
@@ -702,19 +729,21 @@ export default function BriefingEdit() {
       </div>
 
       <aside className="briefing-side">
-        <div className="copy-panel">
-          <span className="copy-panel__label">Nome do card/arquivo</span>
-          <code className="copy-panel__code">{nomenclature}</code>
-          <button type="button" className="ghost-btn" onClick={handleCopyNomenclature}>
-            {copiedNom ? 'Copiado!' : 'Copiar nome'}
-          </button>
-          {!selectedBrand?.code && (
-            <p className="hint">
-              Selecione um cliente com sigla cadastrada (ou adicione a sigla em Clientes → Editar) para gerar a
-              nomenclatura completa.
-            </p>
-          )}
-        </div>
+        {!hideCardName && (
+          <div className="copy-panel">
+            <span className="copy-panel__label">Nome do card/arquivo</span>
+            <code className="copy-panel__code">{nomenclature}</code>
+            <button type="button" className="ghost-btn" onClick={handleCopyNomenclature}>
+              {copiedNom ? 'Copiado!' : 'Copiar nome'}
+            </button>
+            {!selectedBrand?.code && (
+              <p className="hint">
+                Selecione um cliente com sigla cadastrada (ou adicione a sigla em Clientes → Editar) para gerar a
+                nomenclatura completa.
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="copy-panel">
           <span className="copy-panel__label">Briefing para colar no Trello</span>
