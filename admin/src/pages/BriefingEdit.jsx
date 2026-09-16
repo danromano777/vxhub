@@ -74,6 +74,8 @@ export default function BriefingEdit() {
   const [briefing, setBriefing] = useState(emptyBriefing);
   const [pickerOpen, setPickerOpen] = useState(isNew);
   const [history, setHistory] = useState([]);
+  const [screens, setScreens] = useState([]);
+  const [savingScreenId, setSavingScreenId] = useState(null);
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
@@ -97,6 +99,7 @@ export default function BriefingEdit() {
     setPickerOpen(isNew);
     if (isNew) {
       setBriefing(emptyBriefing);
+      setScreens([]);
       return;
     }
     setLoading(true);
@@ -104,7 +107,7 @@ export default function BriefingEdit() {
       .getBriefing(id)
       .then((b) => {
         const {
-          history: h, brand_name, brand_code, created_by_name, status,
+          history: h, screens: sc, brand_name, brand_code, created_by_name, status,
           created_at, updated_at, id: bid, created_by, ...rest
         } = b;
         setBriefing({
@@ -113,6 +116,7 @@ export default function BriefingEdit() {
           deadline: rest.deadline ? String(rest.deadline).slice(0, 10) : '',
         });
         setHistory(h || []);
+        setScreens(sc || []);
         setStatusDraft(status);
       })
       .catch((err) => setError(err.message))
@@ -150,8 +154,8 @@ export default function BriefingEdit() {
   );
 
   const briefingText = useMemo(
-    () => buildBriefingText({ briefing, brandName: selectedBrand?.name, brandCode: selectedBrand?.code }),
-    [briefing, selectedBrand]
+    () => buildBriefingText({ briefing, brandName: selectedBrand?.name, brandCode: selectedBrand?.code, screens }),
+    [briefing, selectedBrand, screens]
   );
 
   useEffect(() => {
@@ -329,6 +333,65 @@ export default function BriefingEdit() {
       setExtractError(err.message);
     } finally {
       setExtracting(false);
+    }
+  }
+
+  async function handleAddScreen() {
+    setError('');
+    const sort_order = screens.length ? Math.max(...screens.map((s) => s.sort_order || 0)) + 1 : 0;
+    const payload = { title: '', text_content: '', image_url: '', sort_order };
+    try {
+      const r = await api.createBriefingScreen(id, payload);
+      setScreens((prev) => [...prev, { id: r.id, ...payload }]);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  function setScreenField(screenId, field, value) {
+    setScreens((prev) => prev.map((s) => (s.id === screenId ? { ...s, [field]: value } : s)));
+  }
+
+  async function handleSaveScreen(screen) {
+    setSavingScreenId(screen.id);
+    setError('');
+    try {
+      await api.updateBriefingScreen(id, screen.id, screen);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSavingScreenId(null);
+    }
+  }
+
+  async function handleDeleteScreen(screenId) {
+    if (!confirm('Excluir essa tela? Essa ação não pode ser desfeita.')) return;
+    setError('');
+    try {
+      await api.deleteBriefingScreen(id, screenId);
+      setScreens((prev) => prev.filter((s) => s.id !== screenId));
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function handleMoveScreen(index, direction) {
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= screens.length) return;
+    const updated = [...screens];
+    const a = { ...updated[index] };
+    const b = { ...updated[newIndex] };
+    const swap = a.sort_order;
+    a.sort_order = b.sort_order;
+    b.sort_order = swap;
+    updated[index] = b;
+    updated[newIndex] = a;
+    setScreens(updated);
+    setError('');
+    try {
+      await Promise.all([api.updateBriefingScreen(id, a.id, a), api.updateBriefingScreen(id, b.id, b)]);
+    } catch (err) {
+      setError(err.message);
     }
   }
 
@@ -593,6 +656,70 @@ export default function BriefingEdit() {
               </label>
             )}
           </div>
+
+          <h3>Telas</h3>
+          <p className="hint">
+            Cada tela é uma arte da sequência (carrossel, trinca etc.), com imagem e texto próprios. Sempre chame de
+            "Tela" — nunca "Card".
+          </p>
+          {isNew ? (
+            <p className="hint">Salve o briefing primeiro para adicionar telas.</p>
+          ) : (
+            <>
+              {screens.length > 0 && (
+                <div className="screens-list">
+                  {screens.map((s, i) => (
+                    <div className="screen-card" key={s.id}>
+                      <div className="screen-card__head">
+                        <span className="screen-card__number">Tela {i + 1}</span>
+                        <div className="screen-card__actions">
+                          <button type="button" className="icon-btn" onClick={() => handleMoveScreen(i, -1)} disabled={i === 0} title="Mover para cima">
+                            ↑
+                          </button>
+                          <button type="button" className="icon-btn" onClick={() => handleMoveScreen(i, 1)} disabled={i === screens.length - 1} title="Mover para baixo">
+                            ↓
+                          </button>
+                          <button type="button" className="icon-btn icon-btn--danger" onClick={() => handleDeleteScreen(s.id)} title="Excluir tela">
+                            🗑
+                          </button>
+                        </div>
+                      </div>
+                      <label>
+                        Título (opcional)
+                        <input
+                          value={s.title || ''}
+                          onChange={(e) => setScreenField(s.id, 'title', e.target.value)}
+                          placeholder='ex: "Post 1 (Direta)"'
+                        />
+                      </label>
+                      <div className="grid2">
+                        <label>
+                          Imagem (link)
+                          <input
+                            value={s.image_url || ''}
+                            onChange={(e) => setScreenField(s.id, 'image_url', e.target.value)}
+                            placeholder="Link da imagem — não embedar direto"
+                          />
+                        </label>
+                        <label>
+                          Texto
+                          <textarea value={s.text_content || ''} onChange={(e) => setScreenField(s.id, 'text_content', e.target.value)} />
+                        </label>
+                      </div>
+                      <button type="button" className="btn" onClick={() => handleSaveScreen(s)} disabled={savingScreenId === s.id}>
+                        {savingScreenId === s.id ? 'Salvando…' : 'Salvar tela'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {canWrite && (
+                <button type="button" className="icon-btn" onClick={handleAddScreen}>
+                  + Adicionar tela
+                </button>
+              )}
+            </>
+          )}
 
           {isCampanha && (
             <>

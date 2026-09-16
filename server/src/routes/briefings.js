@@ -76,7 +76,11 @@ router.get('/:id', async (req, res) => {
      ORDER BY h.created_at ASC, h.id ASC`,
     [req.params.id]
   );
-  res.json({ ...briefing, history });
+  const [screens] = await pool.query(
+    'SELECT * FROM briefing_screens WHERE briefing_id = ? ORDER BY sort_order, id',
+    [req.params.id]
+  );
+  res.json({ ...briefing, history, screens });
 });
 
 router.post('/', CAN_WRITE, async (req, res) => {
@@ -139,6 +143,33 @@ router.post('/:id/status', CAN_WRITE, async (req, res) => {
 
 router.delete('/:id', CAN_WRITE, async (req, res) => {
   await pool.query('DELETE FROM briefings WHERE id = ?', [req.params.id]);
+  res.status(204).end();
+});
+
+const SCREEN_FIELDS = ['title', 'text_content', 'image_url', 'sort_order'];
+
+function screenValues(body) {
+  return SCREEN_FIELDS.map((f) => (f === 'sort_order' ? body[f] || 0 : body[f] ?? ''));
+}
+
+router.post('/:id/screens', CAN_WRITE, async (req, res) => {
+  const [result] = await pool.query(
+    `INSERT INTO briefing_screens (briefing_id,${SCREEN_FIELDS.join(',')}) VALUES (?,${SCREEN_FIELDS.map(() => '?').join(',')})`,
+    [req.params.id, ...screenValues(req.body)]
+  );
+  res.status(201).json({ id: result.insertId });
+});
+
+router.put('/:id/screens/:screenId', CAN_WRITE, async (req, res) => {
+  await pool.query(
+    `UPDATE briefing_screens SET ${SCREEN_FIELDS.map((f) => `${f}=?`).join(',')} WHERE id=? AND briefing_id=?`,
+    [...screenValues(req.body), req.params.screenId, req.params.id]
+  );
+  res.json({ ok: true });
+});
+
+router.delete('/:id/screens/:screenId', CAN_WRITE, async (req, res) => {
+  await pool.query('DELETE FROM briefing_screens WHERE id=? AND briefing_id=?', [req.params.screenId, req.params.id]);
   res.status(204).end();
 });
 

@@ -107,7 +107,9 @@ O schema (`db/init/001_schema.sql`) cria as tabelas `users`, `brands`, `sections
 
 `db/init/004_prio_code.sql` define a sigla `PRIO` para o cliente Prio, que não estava na tabela de siglas do documento de nomenclatura (só era citado como equipe/time separado da esteira ON+OFF).
 
-Esses scripts rodam automaticamente na primeira inicialização do container MySQL (via `docker-entrypoint-initdb.d`); se o banco já existir de uma versão anterior do projeto, rode o conteúdo de cada arquivo novo manualmente, na ordem, por exemplo: `docker compose exec -T db mysql -u root -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" < db/init/003_briefing_nomenclature.sql` (sem perder os dados existentes).
+`db/init/005_briefing_screens.sql` cria a tabela `briefing_screens`: as **Telas** de um briefing (peças de um carrossel/trinca/sequência), cada uma com título opcional, texto e imagem (link) próprios, numa ordem reordenável (`sort_order`). Disponível em qualquer tipo de job, não só carrossel — segue o vocabulário padronizado do guia interno da conta ("Tela", nunca "Card").
+
+Esses scripts rodam automaticamente na primeira inicialização do container MySQL (via `docker-entrypoint-initdb.d`); se o banco já existir de uma versão anterior do projeto, rode o conteúdo de cada arquivo novo manualmente, na ordem, por exemplo: `docker compose exec -T db mysql -u root -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" < db/init/005_briefing_screens.sql` (sem perder os dados existentes).
 
 ## Extração de briefing por IA (opcional)
 

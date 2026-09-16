@@ -17,7 +17,20 @@ function block(label, value) {
   return `**${label}**\n${value}`;
 }
 
-export function buildBriefingText({ briefing, brandName, brandCode }) {
+function screensBlock(screens) {
+  if (!screens || !screens.length) return '';
+  return screens
+    .map((s, i) => {
+      const label = s.title ? `Tela ${i + 1} — ${s.title}` : `Tela ${i + 1}`;
+      const lines = [`**${label}**`];
+      if (s.image_url) lines.push(`Imagem: ${s.image_url}`);
+      if (s.text_content) lines.push(`Texto: ${s.text_content}`);
+      return lines.join('\n');
+    })
+    .join('\n\n');
+}
+
+export function buildBriefingText({ briefing, brandName, brandCode, screens }) {
   const parts = [];
 
   const clienteValue = brandName ? `${brandName}${brandCode ? ` [${brandCode}]` : ''}` : '';
@@ -45,6 +58,8 @@ export function buildBriefingText({ briefing, brandName, brandCode }) {
 
   const pieceInfo = `${briefing.piece_format === 'VID' ? 'Vídeo' : 'Estático'} · ${briefing.piece_count || 1} peça(s)${briefing.video_channel ? ` · ${briefing.video_channel}` : ''}`;
   parts.push(block('Escopo', [briefing.scope, pieceInfo].filter(Boolean).join('\n')));
+
+  parts.push(screensBlock(screens));
 
   parts.push(block('Canais', briefing.channels));
   parts.push(block('Referências', briefing.references_text));

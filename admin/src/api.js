@@ -98,6 +98,13 @@ export const api = {
   extractBriefingText: (text) => request('/ai/extract-briefing', { method: 'POST', body: { text } }),
   extractBriefingFile: (file) => uploadFile('/ai/extract-briefing-file', 'file', file),
   transcribeAudio: (file) => uploadFile('/ai/transcribe-audio', 'file', file),
+
+  createBriefingScreen: (briefingId, data) =>
+    request(`/briefings/${briefingId}/screens`, { method: 'POST', body: data }),
+  updateBriefingScreen: (briefingId, screenId, data) =>
+    request(`/briefings/${briefingId}/screens/${screenId}`, { method: 'PUT', body: data }),
+  deleteBriefingScreen: (briefingId, screenId) =>
+    request(`/briefings/${briefingId}/screens/${screenId}`, { method: 'DELETE' }),
 };
 
 export { getToken };
